@@ -1,0 +1,10 @@
+# ignored files
+bin/
+test/
+tool/
+tool_output/
+florida_c/
+hashTable/
+src/
+gift.o
+*.geany
