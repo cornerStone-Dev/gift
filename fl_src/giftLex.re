@@ -1,49 +1,33 @@
-/* fith compiler */
-/* PUBLIC DOMAIN */
+/* giftLex.re */
 
-/*!max:re2c*/                        // directive that defines YYMAXFILL (unused)
+/*!max:re2c*/                        // directive that defines YYMAXFILL
 /*!re2c                              // start of re2c block
 	
-	mcm = "(" [^)\x03]* ")"; // WILL NOT WORK ON  ending!!!!
+	// comments and white space
 	scm = ";" [^\n\x03]* "\n";
-	wsp = ([ \n\t\r] | scm )+; // removed \v
-	//macro = "#" ([^\n] | "\\\n")* "\n";
-	//local_macro = "#@" ([^\n] | "\\\n")* "\n";
+	wsp = ([ \r\n\t] | scm )+;
+
 	// integer literals
 	oct = "0" [0-7]*;
 	dec = [1-9][0-9]*;
 	hex = '0x' [0-9A-F]+; // a-f removed
+	integer = "-"? (oct | dec | hex);
+
 	// floating literals
 	frc = [0-9]* "." [0-9]+ | [0-9]+ ".";
 	exp = 'e' [+-]? [0-9]+;
 	flt = "-"? (frc exp? | [0-9]+ exp) [fFlL]?;
+
+	// string literals
 	string_lit = ["] ([^"\x03] | ([\\] ["]))* ["];
-	//string_lit_chain = string_lit ([ \n\t\r]* string_lit)+;
-	//string_lit_chain = ([^"\n] | ([\\] ["]))* ("\n" | ["]);
 	string_lit_chain = ([^"\n] | ([\\] ["]))* "\n";
 	string_lit_end = ([^"\n] | ([\\] ["]))* ["];
 	mangled_string_lit = ["] ([^"\x00\x03] | ([\\] ["]))* "\x00";
+	
+	// character literals
 	char_lit = [#] ['] ([^'\x03] | ([\\] [']))* ['];
-	integer = "-"? (oct | dec | hex);
-	lblock =     "{";
-	rblock =     "}";
-	lparen =     "(";
-	rparen =     ")";
-	lbracket =   "[";
-	rbracket =   "]";
-	comma =      ",";
-	star =       "*";
-	atsign =     "@";
-	dollar =     "$";
-	semi =     ";";
-	function =   "fn";
-	function_call = [a-zA-Z_][a-zA-Z_0-9?-]*;
-	function_call_addr = [a-zA-Z_][a-zA-Z_0-9?-]*"@";
-	function_definition = [a-zA-Z_][a-zA-Z_0-9?-]* ":";
-	var = [a-zA-Z_!$%&*/:<>=?\x5e~][a-zA-Z_!$%&*/:<>=?\x5e~0-9+.@-]*;
-	var_assign = "=$" function_call; // pop top of stack and assign to value, create variable
-	var_addr = "@" function_call; // push address on stack
-
+	
+	identifier = [a-zA-Z_!$%&/*:<>=?\x5e~][a-zA-Z_!$%&/*:<>=?\x5e~0-9+.@-]*;
 	
 */                                   // end of re2c block
 
@@ -77,7 +61,8 @@ static int lex_options(u8 * YYCURSOR)
 	*/                               // end of re2c block
 }
 
-static int lex_string_lit_chain(u8 ** YYCURSOR_p)
+static s32
+lex_string_lit_chain(u8 ** YYCURSOR_p)
 {                                    //
 	u8 * YYCURSOR;
 	u8 *start;
@@ -90,17 +75,15 @@ loop: // label for looping within the lexxer
 	start = YYCURSOR;
 
 	/*!re2c                          // start of re2c block **/
-	re2c:define:YYCTYPE = "u8";      //   configuration that defines YYCTYPE
-	re2c:yyfill:enable  = 0;         //   configuration that turns off YYFILL
-									 //
-	* { goto loop; }//   default rule with its semantic action
-	//[\x00] { return 1; }             // EOF rule with null sentinal
+	re2c:define:YYCTYPE = "u8";
+	re2c:yyfill:enable  = 0;
+
+	* { goto loop; }//   default rule
 	
 	string_lit_chain {
 		*(YYCURSOR-1) = 0;
 		startMangledString = (u8*)stpcpy((char *)startMangledString,
 										(const char *)start);
-		//*YYCURSOR_p = startMangledString;
 		goto loop;
 	}
 	
@@ -369,7 +352,7 @@ loop: // label for looping within the lexxer
 		//~ return t;
 	//~ }
 
-	//~ var {
+	//~ identifier {
 		//~ LIST_writeString(&t, start, YYCURSOR-start+2);
 		//~ *(t-(YYCURSOR-start+2))=LIST_SYMBOL;
 		//~ //printf("variable %s\n", (t-(YYCURSOR-start+1)));
