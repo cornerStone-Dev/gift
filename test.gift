@@ -1,0 +1,7 @@
+; gift test file
+12 7.8 
+"Hello"
+#'c'
+#t #f
+(58 #t (1 "yes"))
+

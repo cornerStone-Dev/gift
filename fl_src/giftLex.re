@@ -22,7 +22,6 @@
 	string_lit = ["] ([^"\x03] | ([\\] ["]))* ["];
 	string_lit_chain = ([^"\n] | ([\\] ["]))* "\n";
 	string_lit_end = ([^"\n] | ([\\] ["]))* ["];
-	mangled_string_lit = ["] ([^"\x00\x03] | ([\\] ["]))* "\x00";
 	
 	// character literals
 	char_lit = [#] ['] ([^'\x03] | ([\\] [']))* ['];
@@ -32,43 +31,44 @@
 */                                   // end of re2c block
 
 
-static int lex_options(u8 * YYCURSOR)
+static s32
+giftLexOptions(u8 *YYCURSOR)
 {
-	u8 * YYMARKER;
-	u8 * start;
-	
-	//YYCURSOR = *YYCURSOR_p;
+	u8 *YYMARKER;
+	u8 *start;
 
-//loop: // label for looping within the lexxer
 	start = YYCURSOR;
 
-	/*!re2c                          // start of re2c block **/
-	re2c:define:YYCTYPE = "u8";      //   configuration that defines YYCTYPE
-	re2c:yyfill:enable  = 0;         //   configuration that turns off YYFILL
-									 //
-	* { printf("Invalid Option: %s, Operation aborted\n",start); return 0; } //   default rule with its semantic action
-	[\x00] { return 0; }             // EOF rule with null sentinal
+	/*!re2c                            // start of re2c block **/
+	re2c:define:YYCTYPE = "u8";
+	re2c:yyfill:enable  = 0;
+
+	* { printf("Invalid Option: %s, try --help.\n",start); return 0; }
+	[\x00] { printf("Invalid Option: NULL try --help.\n"); return 0; }
 	
-	"--repl" {
+	"--help" {
 		return 1;
 	}
 	
-	//[a-zA-Z_/0-9-]+ ".fith" {
-	[a-zA-Z_/0-9] [a-zA-Z_/0-9-]* ".gift" {
+	"--repl" {
 		return 2;
 	}
 	
-	*/                               // end of re2c block
+	[a-zA-Z_/0-9] [a-zA-Z_/0-9-]* ".gift" {
+		return 3;
+	}
+	
+	*/                                  // end of re2c block
 }
 
-static s32
-lex_string_lit_chain(u8 ** YYCURSOR_p)
-{                                    //
-	u8 * YYCURSOR;
+static u8*
+compactStrings(u8 *YYCURSOR, u8 *out)
+{
+	//u8 * YYCURSOR;
 	u8 *start;
-	u8 *startMangledString;
-	YYCURSOR = *YYCURSOR_p;
-	startMangledString = YYCURSOR;
+	u64 length=0;
+	//YYCURSOR = *YYCURSOR_p;
+	//startMangledString = out;
 	
 
 loop: // label for looping within the lexxer
@@ -77,28 +77,42 @@ loop: // label for looping within the lexxer
 	/*!re2c                          // start of re2c block **/
 	re2c:define:YYCTYPE = "u8";
 	re2c:yyfill:enable  = 0;
-
-	* { goto loop; }//   default rule
+	
+	* { goto loop; }
 	
 	string_lit_chain {
-		*(YYCURSOR-1) = 0;
-		startMangledString = (u8*)stpcpy((char *)startMangledString,
-										(const char *)start);
+		// part of multi-line string literal
+		// subtract 1 from length to remove newline
+		length = YYCURSOR-start-1;
+		// move string into position(first part of chain is moved wastefully)
+		memmove(out, start, length);
+		out+=length;
+		// skip starting tabs to allow formatting
+		while(*YYCURSOR=='\t'){YYCURSOR++;}
 		goto loop;
 	}
 	
 	string_lit_end {
-		if(startMangledString==start)
+		// end of potentially multi-line string
+		// if the start has been unchanged, we are regular string
+		if(length==0)
 		{
-			*(YYCURSOR-1) = 0; // null terminate
-			*YYCURSOR_p = YYCURSOR-1;// set to null terminator
-			return 0;
+			// null terminate and return
+			*(YYCURSOR-1) = 0;
+			// length including ending null
+			length = YYCURSOR-start;
+			// copy string out
+			memmove(out, start, length);
+			out+=length;
+			return out;
 		}
 		*(YYCURSOR-1) = 0;
-		startMangledString = (u8*)stpcpy((char *)startMangledString,
-										(const char *)start);
-		*YYCURSOR_p = startMangledString; // set to null terminator
-		return 1;
+		// length including ending null
+		length = YYCURSOR-start;
+		// move string into position
+		memmove(out, start, length);
+		out+=length;
+		return out;
 	}
 
 	*/                               // end of re2c block
@@ -106,15 +120,14 @@ loop: // label for looping within the lexxer
 
 // reader
 // returns single token OR list of tokens
-
-static u8 * 
-giftRead(u8 **YYCURSORp, void *c, u8 *t) // YYCURSOR is defined as a function parameter
+// lisp requires garbage collection, therefore a "stack" cannot be used
+// as a scratchpad
+static u8* 
+giftRead(S_Environment *e, u8 **YYCURSORp, u8 *cursor, s64 withinList) 
 {                                    //
-	u8 * YYMARKER;    // YYMARKER is defined as a local variable
-	//const u8 * YYCTXMARKER; // YYCTXMARKER is defined as a local variable
-	u8 *YYCURSOR=*YYCURSORp;    // YYCURSOR is defined as a local variable
-	u8 *buff_start=t;
-	u8 * start;
+	u8 *YYMARKER;
+	u8 *YYCURSOR=*YYCURSORp;
+	u8 *start;
 	
 	//YYCURSOR = *YYCURSOR_p;
 
@@ -135,222 +148,206 @@ loop: // label for looping within the lexxer
 		while (*f!='\n'){
 			f++;
 		}
-		s++;
+		f++;
 		printf("lex failure ");
 		for (u32 ss=0; ss <(f-s); ss++){
 			fputc ( s[ss], stdout);
 		}
 		fputc ( '\n', stdout);
-		goto loop; 
-	} //   default rule with its semantic action start =YYCURSOR;
-	//~ [\x03] { *t = LIST_END_OF_BUFF; return t; 
-	//~ }             // EOF rule with 0x03 sentinal
+		goto loop;
+	}
+	[\x03] { /* *t = LIST_END_OF_BUFF; */ return 0; }
 	
-	//~ wsp {
+	wsp {
 		//~ while (start!=YYCURSOR){
 			//~ if(*start=='\n'){
 				//~ c->line_num+=1;
-				//~ //printf("wsp, %d\n", *line_num);
+				//~ printf("wsp, %d\n", *line_num);
 			//~ }
 			//~ start++;
 		//~ }
-		//~ goto loop;
-	//~ }
+		goto loop;
+	}
  
-	//~ integer {
-		//~ LIST_writeInt(&t, strtol((const char *)start, NULL, 0));
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
+	integer {
+		*YYCURSORp=YYCURSOR;
+		return listWriteInt(cursor, strtol(start, NULL, 0));
+	}
 	
-	//~ flt {
-		//~ LIST_writeFloat(&t, atof( (const char *)start) );
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
+	flt {
+		*YYCURSORp=YYCURSOR;
+		return listWriteFloat(cursor, atof(start));
+	}
 	
-	//~ string_lit { 
-		//~ start++;
-		//~ u8 *string = start;
-		//~ // concatenate all multiline strings
-		//~ lex_string_lit_chain(&start); // start is null terminator
-		//~ LIST_writeString(&t, string, start-string+2);
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
+	string_lit { 
+		start++;
+		//u8 *string = start;
+		*YYCURSORp=YYCURSOR;
+		*cursor = listStringType();
+		cursor+=1;
+		// concatenate all multiline strings
+		return compactStrings(start, cursor);
+	}
+
+	char_lit {
+		*cursor = listCharType();
+		cursor+=1;
+		switch(*(start+2))
+		{
+			case '\\':
+			switch(*(start+3))
+			{
+				case '\'':
+				*cursor = 0x27;
+				break;
+				case 'n':
+				*cursor = 0x0A;
+				break;
+				case 'r':
+				*cursor = 0x0D;
+				break;
+				case 't':
+				*cursor = 0x09;
+				break;
+			}
+			break;
+			default:
+			*cursor = *(start+2);
+			break;
+		}
+		cursor+=1;
+		*YYCURSORp=YYCURSOR;
+		return cursor;
+	}
+
+	"#t" {
+		*cursor = LIST_TRUE;
+		cursor+=1;
+		*YYCURSORp=YYCURSOR;
+		return cursor;
+	}
 	
-	//~ mangled_string_lit {
-		//~ start++;
-		//~ LIST_writeString(&t, start, strlen((const char *)start)+2);
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
-
-	//~ char_lit {
-		//~ *t = LIST_CHAR_LIT;
-		//~ t++;
-		//~ switch(*(start+2))
-		//~ {
-			//~ case '\\':
-			//~ switch(*(start+3))
-			//~ {
-				//~ case '\'':
-				//~ *t = 0x27;
-				//~ break;
-				//~ case 'n':
-				//~ *t = 0x0A;
-				//~ break;
-				//~ case 'r':
-				//~ *t = 0x0D;
-				//~ break;
-				//~ case 't':
-				//~ *t = 0x09;
-				//~ break;
-			//~ }
-			//~ break;
-			//~ default:
-			//~ *t = *(start+2);
-			//~ break;
-		//~ }
-		//~ t++;
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
-
-	//~ "#t" {
-		//~ *t = LIST_TRUE;
-		//~ t++;
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
-
-	//~ "#f" {
-		//~ *t = LIST_FALSE;
-		//~ t++;
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
-
-	//~ "()" {
-		//~ *t = LIST_NIL;
-		//~ t++;
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
-
-	//~ "(" {
-		//~ //u64 len;
-		//~ u32 paren_count;
-		//~ if(c->in_list==0)
-		//~ {
-			//~ // need to gather rest of the list
-			//~ *t = LIST_START;
-			//~ t++;
-			//~ //list_continue:
-			//~ paren_count=0;
-			//~ c->in_list=1;
-			//~ do {
-				//~ t = giftRead(&YYCURSOR, c, t);
-				//~ //printf("token## %d\n",(t[c->token_index].t>>56));
-				//~ if(*(t-1)==LIST_START)
-				//~ {
-					//~ paren_count++;
-				//~ } else if(*(t-1)==LIST_END) {
-					//~ if(paren_count==0)
-					//~ {
-						//~ break;
-					//~ } else {
-						//~ paren_count--;
-					//~ }
-				//~ } else if(*t==LIST_END_OF_BUFF) {
-					//~ printf("Error Input: Buffer ended before list.\n");
-					//~ c->in_list=0;
-					//~ t = buff_start;
-					//~ *t = LIST_FALSE;
-					//~ t++;
-					//~ *YYCURSORp=YYCURSOR;
-					//~ return t;
-				//~ }
-			//~ } while (1);
-			//~ c->in_list=0;
-			//~ *YYCURSORp=YYCURSOR;
-			//~ return t;
-		//~ }
-		//~ *t = LIST_START;
-		//~ t++;
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
-
-	//~ ")" {
-		//~ *t = LIST_END;
-		//~ t++;
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
-
-	//~ "'" { // this could be a list with recursive call to lex...
-		//~ *t = LIST_QUOTE;
-		//~ t++;
-		//~ *YYCURSORp=YYCURSOR;
-		//~ goto loop;
-	//~ }
-
-	//~ "define" {
-		//~ *t = LIST_DEFINE;
-		//~ t++;
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
-
-	//~ "set!" {
-		//~ *t = LIST_SET;
-		//~ t++;
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
+	"#f" {
+		*cursor = LIST_FALSE;
+		cursor+=1;
+		*YYCURSORp=YYCURSOR;
+		return cursor;
+	}
 	
-	//~ "if" {
-		//~ *t = LIST_IF;
-		//~ t++;
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
+	"()" {
+		*cursor = LIST_NIL;
+		cursor+=1;
+		*YYCURSORp=YYCURSOR;
+		return cursor;
+	}
 
-	//~ "+" {
-		//~ *t = LIST_PLUS;
-		//~ t++;
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
+	")" {
+		*cursor = LIST_END;
+		cursor+=1;
+		*YYCURSORp=YYCURSOR;
+		return cursor;
+	}
+
+	"'" { // QUOTE very tough
+		*cursor = LIST_QUOTE;
+		cursor+=1;
+		goto loop;
+	}
+
+	"define" {
+		*cursor = LIST_DEFINE;
+		cursor+=1;
+		*YYCURSORp=YYCURSOR;
+		return cursor;
+	}
+
+	"set!" {
+		*cursor = LIST_SET;
+		cursor+=1;
+		*YYCURSORp=YYCURSOR;
+		return cursor;
+	}
+
+	"if" {
+		*cursor = LIST_IF;
+		cursor+=1;
+		*YYCURSORp=YYCURSOR;
+		return cursor;
+	}
+
+	"+" {
+		*cursor = LIST_PLUS;
+		cursor++;
+		*YYCURSORp=YYCURSOR;
+		return cursor;
+	}
 	
-	//~ "-" {
-		//~ *t = LIST_SUBT;
-		//~ t++;
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
+	"-" {
+		*cursor = LIST_SUBT;
+		cursor++;
+		*YYCURSORp=YYCURSOR;
+		return cursor;
+	}
 	
-	//~ "*" {
-		//~ *t = LIST_MULT;
-		//~ t++;
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
+	"*" {
+		*cursor = LIST_MULT;
+		cursor++;
+		*YYCURSORp=YYCURSOR;
+		return cursor;
+	}
 	
-	//~ "/" {
-		//~ *t = LIST_DIVI;
-		//~ t++;
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
+	"/" {
+		*cursor = LIST_DIVI;
+		cursor++;
+		*YYCURSORp=YYCURSOR;
+		return cursor;
+	}
 	
-	//~ "%" {
-		//~ *t = LIST_REMA;
-		//~ t++;
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
+	"%" {
+		*cursor = LIST_REMA;
+		cursor++;
+		*YYCURSORp=YYCURSOR;
+		return cursor;
+	}
+
+	"(" {
+		//u64 len;
+		u32 paren_count;
+		if(withinList)
+		{
+			*cursor = LIST_START;
+			cursor++;
+			*YYCURSORp=YYCURSOR;
+			return cursor;
+		}
+		// need to gather rest of the list
+		*cursor = LIST_START;
+		cursor++;
+		//list_continue:
+		paren_count=0;
+		do {
+			cursor = giftRead(e, &YYCURSOR, cursor, 1);
+			if(cursor==0){
+				printf("Error Input: Buffer ended before list.\n");
+				// TODO error handling?
+				return 0;
+			}
+			u8 prevToken = *(cursor-1);
+			if(prevToken==LIST_START)
+			{
+				paren_count++;
+			} else if(prevToken==LIST_END) {
+				if(paren_count)
+				{
+					paren_count--;
+				} else {
+					break;
+				}
+			}
+		} while (1);
+		*YYCURSORp=YYCURSOR;
+		return cursor;
+	}
 
 	//~ identifier {
 		//~ LIST_writeString(&t, start, YYCURSOR-start+2);

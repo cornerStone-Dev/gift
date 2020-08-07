@@ -5,7 +5,7 @@ gift.o: florida_c/bin/flct hashTable/hashTable.h src/source.c \
 tool_output/giftLex.c
 	gcc -Os -march=native -fno-builtin-strlen -fno-builtin-memmove \
 	-fno-builtin-memset -fno-stack-protector -c -o gift.o src/source.c \
-	-Wall -Wextra -Wno-unused-function
+	-Wall -Wextra -Wno-unused-function -Wno-pointer-sign
 	size gift.o
 
 tool_output/giftLex.c: fl_src/giftLex.re
@@ -34,10 +34,10 @@ hashTable/hashTable.h:
 	git clone https://github.com/cornerStone-Dev/hashTable.git
 
 test: bin/giftTest
-	time ./bin/giftTest
+#time ./bin/giftTest
 
 bin/giftTest: giftTest.c gift.o 
-	gcc -O2 -march=native giftTest.c -s -o bin/giftTest gift.o -Wall
+	gcc -O2 -march=native giftTest.c -s -o bin/giftTest gift.o -Wall -Wextra
 
 clean:
 	rm -f gift.o
