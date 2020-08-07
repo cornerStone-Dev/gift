@@ -4,22 +4,23 @@ u8$
 listWriteInt(u8 $out, s64 value)
 {
 	u64 raw = (u64) value;
-	u32 lz, x;
+	s64 x;
+	u32 lz;
 	// count leading zeros
 	lz = __builtin_clzl(raw);
-	// divide by eight to get number of bytes I need write out
+	// divide by eight to get number of bytes that are zero
 	lz/=8;
-	
+	// subtract from 8 to get number of bytes I need to write
 	x = 8 - lz;
-	
 	// write out LIST_INT enumeration
 	$out = x;
 	out+=1;
-	
+	// subtract one to work better for loop
+	x-=1;
 	// write out the number
-	for(; x > 0; x-=1)
+	for(; x >= 0; x-=1)
 	{
-		$out = ( raw >> ((x-1)*8) ) & 0xFF;
+		$out = ( raw >> (x*8) ) & 0xFF;
 		out+=1;
 	}
 	return out;
