@@ -1,5 +1,20 @@
 // giftList.fl.c
 
+s64
+readListInt(u8 $input, s64 len)
+{
+	u64 listInt=0;
+	
+	len-=1;
+	for(; len >= 0; len-=1)
+	{
+		listInt += (((u64)($input))<<(len*8));
+		input+=1;
+	}
+	
+	return (s64)listInt;
+}
+
 u8$
 listWriteInt(u8 $out, s64 value)
 {
@@ -24,6 +39,23 @@ listWriteInt(u8 $out, s64 value)
 		out+=1;
 	}
 	return out;
+}
+
+f64
+readListFloat(u8 $input)
+{
+	U_Data data;
+	u64 listInt=0;
+	s64 len = 7;
+	
+	do{
+		listInt += (((u64)($input))<<(len*8));
+		input+=1;
+		len-=1;
+	}while(len>=0);
+	
+	data.i = listInt;
+	return data.d;
 }
 
 u8$

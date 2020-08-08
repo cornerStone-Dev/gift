@@ -123,15 +123,24 @@ loop: // label for looping within the lexxer
 // lisp requires garbage collection, therefore a "stack" cannot be used
 // as a scratchpad
 static u8* 
-giftRead(S_Environment *e, u8 **YYCURSORp, u8 *cursor, s64 withinList) 
+giftRead(u8 **YYCURSORp, u8 *cursor, s64 withinList) 
 {                                    //
 	u8 *YYMARKER;
 	u8 *YYCURSOR=*YYCURSORp;
 	u8 *start;
+	u64 paren_count=0;
 	
-	//YYCURSOR = *YYCURSOR_p;
+	goto skipCheck;
 
 loop: // label for looping within the lexxer
+	
+	if(withinList==0){
+		*YYCURSORp=YYCURSOR;
+		return cursor;
+	}
+	
+skipCheck:
+	
 	start = YYCURSOR;
 
 	/*!re2c                          // start of re2c block **/
@@ -154,7 +163,7 @@ loop: // label for looping within the lexxer
 			fputc ( s[ss], stdout);
 		}
 		fputc ( '\n', stdout);
-		goto loop;
+		goto skipCheck;
 	}
 	[\x03] { /* *t = LIST_END_OF_BUFF; */ return 0; }
 	
@@ -166,31 +175,30 @@ loop: // label for looping within the lexxer
 			//~ }
 			//~ start++;
 		//~ }
-		goto loop;
+		goto skipCheck;
 	}
  
 	integer {
-		*YYCURSORp=YYCURSOR;
-		return listWriteInt(cursor, strtol(start, NULL, 0));
+		cursor = listWriteInt(cursor, strtol(start, NULL, 0));
+		goto loop;
 	}
 	
 	flt {
-		*YYCURSORp=YYCURSOR;
-		return listWriteFloat(cursor, atof(start));
+		cursor = listWriteFloat(cursor, atof(start));
+		goto loop;
 	}
 	
 	string_lit { 
 		start++;
-		//u8 *string = start;
-		*YYCURSORp=YYCURSOR;
-		*cursor = listStringType();
+		*cursor = LIST_STRING_N;
 		cursor+=1;
 		// concatenate all multiline strings
-		return compactStrings(start, cursor);
+		cursor = compactStrings(start, cursor);
+		goto loop;
 	}
 
 	char_lit {
-		*cursor = listCharType();
+		*cursor = LIST_CHAR_LIT;
 		cursor+=1;
 		switch(*(start+2))
 		{
@@ -216,146 +224,117 @@ loop: // label for looping within the lexxer
 			break;
 		}
 		cursor+=1;
-		*YYCURSORp=YYCURSOR;
-		return cursor;
+		goto loop;
 	}
 
 	"#t" {
 		*cursor = LIST_TRUE;
 		cursor+=1;
-		*YYCURSORp=YYCURSOR;
-		return cursor;
+		goto loop;
 	}
 	
 	"#f" {
 		*cursor = LIST_FALSE;
 		cursor+=1;
-		*YYCURSORp=YYCURSOR;
-		return cursor;
+		goto loop;
 	}
 	
 	"()" {
 		*cursor = LIST_NIL;
 		cursor+=1;
-		*YYCURSORp=YYCURSOR;
-		return cursor;
+		goto loop;
 	}
 
 	")" {
 		*cursor = LIST_END;
 		cursor+=1;
-		*YYCURSORp=YYCURSOR;
-		return cursor;
+		if(paren_count)
+		{
+			paren_count--;
+		} else {
+			withinList = 0;
+		}
+		goto loop;
 	}
 
 	"'" { // QUOTE very tough
 		*cursor = LIST_QUOTE;
 		cursor+=1;
-		goto loop;
+		goto skipCheck;
 	}
 
 	"define" {
 		*cursor = LIST_DEFINE;
 		cursor+=1;
-		*YYCURSORp=YYCURSOR;
-		return cursor;
+		goto loop;
 	}
 
 	"set!" {
 		*cursor = LIST_SET;
 		cursor+=1;
-		*YYCURSORp=YYCURSOR;
-		return cursor;
+		goto loop;
 	}
 
 	"if" {
 		*cursor = LIST_IF;
 		cursor+=1;
-		*YYCURSORp=YYCURSOR;
-		return cursor;
+		goto loop;
 	}
 
 	"+" {
 		*cursor = LIST_PLUS;
 		cursor++;
-		*YYCURSORp=YYCURSOR;
-		return cursor;
+		goto loop;
 	}
 	
 	"-" {
 		*cursor = LIST_SUBT;
 		cursor++;
-		*YYCURSORp=YYCURSOR;
-		return cursor;
+		goto loop;
 	}
 	
 	"*" {
 		*cursor = LIST_MULT;
 		cursor++;
-		*YYCURSORp=YYCURSOR;
-		return cursor;
+		goto loop;
 	}
 	
 	"/" {
 		*cursor = LIST_DIVI;
 		cursor++;
-		*YYCURSORp=YYCURSOR;
-		return cursor;
+		goto loop;
 	}
 	
 	"%" {
 		*cursor = LIST_REMA;
 		cursor++;
-		*YYCURSORp=YYCURSOR;
-		return cursor;
+		goto loop;
 	}
 
 	"(" {
-		//u64 len;
-		u32 paren_count;
 		if(withinList)
 		{
 			*cursor = LIST_START;
 			cursor++;
-			*YYCURSORp=YYCURSOR;
-			return cursor;
+			paren_count++;
+			goto loop;
 		}
 		// need to gather rest of the list
 		*cursor = LIST_START;
 		cursor++;
-		//list_continue:
-		paren_count=0;
-		do {
-			cursor = giftRead(e, &YYCURSOR, cursor, 1);
-			if(cursor==0){
-				printf("Error Input: Buffer ended before list.\n");
-				// TODO error handling?
-				return 0;
-			}
-			u8 prevToken = *(cursor-1);
-			if(prevToken==LIST_START)
-			{
-				paren_count++;
-			} else if(prevToken==LIST_END) {
-				if(paren_count)
-				{
-					paren_count--;
-				} else {
-					break;
-				}
-			}
-		} while (1);
-		*YYCURSORp=YYCURSOR;
-		return cursor;
+		withinList = 1;
+		goto loop;
 	}
 
-	//~ identifier {
-		//~ LIST_writeString(&t, start, YYCURSOR-start+2);
-		//~ *(t-(YYCURSOR-start+2))=LIST_SYMBOL;
-		//~ //printf("variable %s\n", (t-(YYCURSOR-start+1)));
-		//~ *YYCURSORp=YYCURSOR;
-		//~ return t;
-	//~ }
+	identifier {
+		u64 length = YYCURSOR-start;
+		*cursor = LIST_SYMBOL;
+		cursor+=1;
+		memmove(cursor, start, length);
+		cursor[length]=0;
+		cursor+=length+1;
+		goto loop;
+	}
 
 	*/                               // end of re2c block
 }  

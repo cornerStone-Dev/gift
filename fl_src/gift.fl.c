@@ -87,7 +87,7 @@ giftCommandLine(S_Environment $e, s32 argc, u8 $$argv)
 			// pass the code to the reader
 			do{
 				cursor = getHeapCursor(e);
-				readEnd = giftRead(e, @sourceCode, cursor, 0);
+				readEnd = giftRead(@sourceCode, cursor, 0);
 				if(readEnd == 0){
 					break;
 				}
@@ -103,7 +103,8 @@ giftCommandLine(S_Environment $e, s32 argc, u8 $$argv)
 				printf("heapIndex=%ld\n",e.heapIndex);
 				printf("heapTop=%ld\n",e.heapTop);
 				printf("heapBottom=%ld\n",e.heapBottom);
-			
+				giftPrint(cursor);
+				//giftEvaluate(e, cursor);
 			
 			} while(1);
 			
