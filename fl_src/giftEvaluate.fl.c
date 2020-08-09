@@ -3,11 +3,13 @@
 u8$
 giftEvaluate(S_Environment $e, u8 $cursor)
 {
-	// evaluateDispatch
 	T_hashTableNode $result;
 	u8              $symbol;
 	u8              $value;
 	u64             length;
+	u64 argumentCount = 0;
+
+evaluateDispatch:
 	switch($cursor)
 	{
 		case LIST_0:
@@ -59,18 +61,8 @@ giftEvaluate(S_Environment $e, u8 $cursor)
 	}
 	
 	switch($cursor)
-	{	
-		//~ case LIST_END:
-		//~ printf(")");
-		//~ value+=1;
-		//~ if(parenCount)
-		//~ {
-			//~ parenCount-=1;
-		//~ } else {
-			//~ withinList = 0;
-		//~ }
-		//~ goto loop;
-		
+	{
+
 		//~ case LIST_SYMBOL:
 		//~ value+=1;
 		//~ length = strlen(value)+1; // including null
@@ -78,7 +70,8 @@ giftEvaluate(S_Environment $e, u8 $cursor)
 		//~ value+=length;
 		//~ goto loop;
 		
-		case LIST_DEFINE:
+		// TODO pull out define and set! into function
+		case LIST_DEFINE:{
 		// define is a special form
 		// creates a binding the global environment
 		cursor+=1;
@@ -138,13 +131,13 @@ giftEvaluate(S_Environment $e, u8 $cursor)
 			// free old value
 			free((u8$)result.value);
 			// malloc fresh allocation
-			result.value = (u64)malloc(length);
+			result.value = (u64)malloc((length+7)/8*8);
 			// copy value in
 			memmove((u8$)result.value, value, length);
 			return @e.listTrueValue;
 		} else {
 			// malloc fresh allocation
-			cursor = malloc(length);
+			cursor = malloc((length+7)/8*8);
 			// copy value in
 			memmove(cursor, value, length);
 			// insert into has table
@@ -154,25 +147,134 @@ giftEvaluate(S_Environment $e, u8 $cursor)
 				symbolLength,
 				(u64)cursor);
 			return @e.listTrueValue;
+		}}
+		
+		case LIST_SET:{
+		// set! is a special form
+		// updates the closest binding in the environment
+		// this version updates the global environment
+		cursor+=1;
+		// next expression must evalutate to a symbol
+		if($cursor != LIST_SYMBOL)
+		{
+			symbol = giftEvaluate(e, cursor);
+			if($symbol != LIST_SYMBOL)
+			{
+				printf("Error: attempt to set! ");
+				giftPrint(cursor);
+				printf(", must be a symbol.\n");
+				return @e.undefinedValue;
+			}
+		}
+		symbol = cursor;
+		// skip over symbol or expression resulting in a symbol
+		cursor = skipItem(cursor);
+		// evaluate expression that will become bound to the symbol
+		value = giftEvaluate(e, cursor);
+		// deal with special cases
+		if($value == LIST_UNDEFINED){
+			printf("Error: attempt to set! ");
+			giftPrint(symbol);
+			printf(" as an expression resulting in an undefined value.\n");
+			return value;
+		}
+		symbol+=1;
+		u64 symbolLength = strlen(symbol);
+		if($value == LIST_NULL){
+			// delete the node if it exists
+			if(hashTable_delete_internal(
+				e.hashTable,
+				symbol,
+				symbolLength,
+				(u64$)@value)==0)
+			{
+				free(value);
+			}
+			return @e.listTrueValue;
+		}
+		// insert value
+		// search for existing symbol
+		result =
+		hashTable_find_internal(
+				e.hashTable,
+				symbol,
+				symbolLength );
+		
+		// get size of value, cursor will point to the end
+		// TODO this is not efficent is this is a large item, make better
+		// make this a function call to getSize with special cases
+		cursor = skipItem(value);
+		length = cursor - value;
+		// result is 0 if nothing is found
+		if(result){
+			// free old value
+			free((u8$)result.value);
+			// malloc fresh allocation
+			result.value = (u64)malloc((length+7)/8*8);
+			// copy value in
+			memmove((u8$)result.value, value, length);
+			return @e.listTrueValue;
+		} else {
+			// symbol does not currently exist
+			printf("Error: attempt to set! ");
+			giftPrint(symbol);
+			printf(" which does not exist.\n");
+			return @e.listFalseValue;
+		}}
+		
+		case LIST_IF:
+		// if special form
+		cursor+=1;
+		if( ($(giftEvaluate(e, cursor))) != LIST_FALSE )
+		{
+			cursor = skipItem(cursor);
+			goto evaluateDispatch;
+		} else {
+			cursor = skipItem(cursor);
+			cursor = skipItem(cursor);
+			goto evaluateDispatch;
 		}
 		
+		case LIST_PLUS:
+		cursor+=1;
+		value = getHeapCursor(e);
+		while($cursor != LIST_END)
+		{
+			// accumulate arguments
+			$e.sp = giftEvaluate(e, cursor);
+			e.sp+=1;
+			argumentCount+=1;
+			cursor = skipItem(cursor);
+		}
+		s64 total = 0;
+		// pop stack
+		e.sp-=argumentCount;
+		for(u64 x=0; x < argumentCount; x+=1)
+		{
+			total += readListInt(
+				(e.sp[x])+1,
+				$(e.sp[x]));
+		}
+		//~ while(argumentCount){
+			//~ total += readListInt(
+				//~ ($(e.sp-argumentCount))+1,
+				//~ $($(e.sp-argumentCount)));
+			//~ argumentCount-=1;
+			
+		//~ }
 		
-		return 0;
-		
-		//~ case LIST_SET:
-		//~ printf("set!");
-		//~ value+=1;
-		//~ goto loop;
-		
-		//~ case LIST_IF:
-		//~ printf("if");
-		//~ value+=1;
-		//~ goto loop;
-		
-		//~ case LIST_PLUS:
-		//~ printf("+");
-		//~ value+=1;
-		//~ goto loop;
+		cursor = listWriteInt(value, total);
+		finalizeHeapCursor(e, value, cursor);
+		u8 $transformedSource=value-4;
+		for(u32 x =0; x<20;x+=1)
+		{
+			printf("[%02X]",transformedSource[x]);
+		}
+		printf("\n");
+		printf("heapIndex=%ld\n",e.heapIndex);
+		printf("heapTop=%ld\n",e.heapTop);
+		printf("heapBottom=%ld\n",e.heapBottom);
+		return value;
 		
 		//~ case LIST_SUBT:
 		//~ printf("-");

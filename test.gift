@@ -5,7 +5,10 @@
 #t #f
 '(58 #t (1 "yes"))
 string-length
-(define 33)
+(define #'b')
 (define happy 1)
 happy
-
+(set! happy 25)
+happy
+(if 5 25 21)
+(+ (+ happy 1) (+ 5 5 happy 1))

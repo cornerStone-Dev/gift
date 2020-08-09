@@ -39,11 +39,9 @@ pub struct S_Environment{
 	u32 generationCount;
 	// hash table stuff
 	T_HashTable $hashTable;
-	U_Data $        stk;
-	U_Data $        stk_start;
-	U_Data $        stk_end;
-	U_Data $        vars;
-	U_Data $        cstk;
+	// parameter stack
+	u8  $$stack;
+	u8  $$sp;
 	u8            $tokens;
 	u8 $          yycur;
 	u8 $          buff;
@@ -96,7 +94,7 @@ giftCommandLine(S_Environment $e, s32 argc, u8 $$argv)
 				}
 				$readEnd = 0xFF;
 				transformedSource = cursor;
-				finalizeHeapCursor(e, readEnd);
+				finalizeHeapCursor(e, cursor, readEnd);
 				transformedSource-=4;
 				for(u32 x =0; x<20;x+=1)
 				{
@@ -182,10 +180,15 @@ giftInit(S_Environment $$e)
 	env.heap = malloc(256*1024); // 256 kb = size of L2 cache(CoffeeLake)
 	env.heapTop = (256*1024)-1-16;
 
+	// symbol table set up
 	returnCode = hashTable_init(@env.hashTable);
 	if(returnCode){
 		return returnCode;
 	}
+	
+	// stack set up
+	env.stack = malloc(128*8);
+	env.sp = env.stack;
 
 	// constants
 	env.listNullValue = LIST_NULL;

@@ -13,25 +13,28 @@ getHeapCursor(S_Environment $e)
 		printf("should garbage collect!\n");
 	}
 	p = (@e.heap[currentIndex])+4;
-	e.cache = p;
-	//e->heapIndex+=8;
+	//e.cache = p;
+	e.heapIndex+=8;
 	return (void $)p;
 }
 
+// forces things to crush implied stack
 void
-finalizeHeapCursor(S_Environment $e, u8 $end)
+finalizeHeapCursor(S_Environment $e, u8 $start, u8 $end)
 {
-	u8  $cache;
+	//u8  $cache;
 	u32 $size;
 	u64 amountWritten;
 	
-	cache = e.cache;
-	amountWritten = (end - cache);
+	//cache = e.cache;
+	amountWritten = (end - start);
 	amountWritten = (amountWritten+11)/8;
 	// write size at start
-	size = (u32$)(cache-4);
+	size = (u32$)(start-4);
 	$size = amountWritten;
-	e.heapIndex+=amountWritten*8;
+	// Index should be 8 above the size and 4 above the start
+	e.heapIndex = (start+4)-e.heap;
+	e.heapIndex+=(amountWritten-1)*8; // open cursor adds 8
 }
 
 //~ void $
