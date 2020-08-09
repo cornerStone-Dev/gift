@@ -15,7 +15,7 @@ giftPrint(u8 $value)
 loop: // label for looping
 	
 	if(withinList==0){
-		printf("\n");
+		//printf("\n");
 		return;
 	}
 	
@@ -50,7 +50,7 @@ skipCheck:
 		value+=1;
 		goto loop;
 		
-		case LIST_NIL:
+		case LIST_NULL:
 		printf("()");
 		value+=1;
 		goto loop;
@@ -163,8 +163,14 @@ skipCheck:
 		printf("%%");
 		value+=1;
 		goto loop;
+		
+		case LIST_UNDEFINED:
+		printf("<Undefined Value>");
+		value+=1;
+		goto loop;
+		
 		default:
-		printf("unknown value");
+		printf("<Unknown Value>");
 		value+=1;
 		goto loop;
 	}

@@ -37,6 +37,8 @@ pub struct S_Environment{
 	u64 heapTop;
 	u64 generationSize;
 	u32 generationCount;
+	// hash table stuff
+	T_HashTable $hashTable;
 	U_Data $        stk;
 	U_Data $        stk_start;
 	U_Data $        stk_end;
@@ -52,9 +54,10 @@ pub struct S_Environment{
 	u8            is_def;
 	u8            in_list;
 	u8            printed_error;
-	u8 listNilValue[2];
+	u8 listNullValue[2];
 	u8 listTrueValue[2];
 	u8 listFalseValue[2];
+	u8 undefinedValue;
 };
 
 pub s32
@@ -103,7 +106,9 @@ giftCommandLine(S_Environment $e, s32 argc, u8 $$argv)
 				printf("heapIndex=%ld\n",e.heapIndex);
 				printf("heapTop=%ld\n",e.heapTop);
 				printf("heapBottom=%ld\n",e.heapBottom);
+				cursor = giftEvaluate(e, cursor);
 				giftPrint(cursor);
+				printf("\n");
 				//giftEvaluate(e, cursor);
 			
 			} while(1);
@@ -164,6 +169,7 @@ loadFile(u8 $file_name, u8 as_function)
 pub s32
 giftInit(S_Environment $$e)
 {
+	s32 returnCode;
 	if(e==0){
 		return -1;
 	}
@@ -176,10 +182,16 @@ giftInit(S_Environment $$e)
 	env.heap = malloc(256*1024); // 256 kb = size of L2 cache(CoffeeLake)
 	env.heapTop = (256*1024)-1-16;
 
+	returnCode = hashTable_init(@env.hashTable);
+	if(returnCode){
+		return returnCode;
+	}
+
 	// constants
-	env.listNilValue[0] = LIST_NIL;
+	env.listNullValue[0] = LIST_NULL;
 	env.listTrueValue[0] = LIST_TRUE;
 	env.listFalseValue[0] = LIST_FALSE;
+	env.undefinedValue = LIST_UNDEFINED;
 	
 	$e = env;
 	return 0;

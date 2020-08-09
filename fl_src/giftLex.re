@@ -239,8 +239,14 @@ skipCheck:
 		goto loop;
 	}
 	
+	"#undefined" {
+		*cursor = LIST_UNDEFINED;
+		cursor+=1;
+		goto loop;
+	}
+	
 	"()" {
-		*cursor = LIST_NIL;
+		*cursor = LIST_NULL;
 		cursor+=1;
 		goto loop;
 	}

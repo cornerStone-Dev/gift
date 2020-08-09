@@ -79,16 +79,97 @@ listWriteFloat(u8 $out, f64 value)
 	return out;
 }
 
-u8
-listStringType(void)
+u8$
+skipItem(u8 $cursor)
 {
-	return LIST_STRING_N;
-}
 
-u8
-listCharType(void)
-{
-	return LIST_CHAR_LIT;
+	u64 parenCount=0;
+	u64 withinList=0;
+	
+	goto skipCheck;
+
+loop: // label for looping
+	
+	if(withinList==0){
+		return cursor;
+	}
+	
+skipCheck:
+
+	switch($cursor)
+	{
+		case LIST_0:
+		case LIST_INT1:
+		case LIST_INT2:
+		case LIST_INT3:
+		case LIST_INT4:
+		case LIST_INT5:
+		case LIST_INT6:
+		case LIST_INT7:
+		case LIST_INT8:
+		cursor += ($cursor) + 1;
+		goto loop;
+		
+		case LIST_FLOAT:
+		cursor += 9;
+		goto loop;
+		
+		case LIST_TRUE:
+		case LIST_FALSE:
+		case LIST_NULL:
+		cursor += 1;
+		goto loop;
+		
+		case LIST_CHAR_LIT:
+		cursor += 2;
+		goto loop;
+		
+		case LIST_STRING_N:
+		case LIST_SYMBOL:
+		cursor+=1;
+		cursor += strlen(cursor)+1;
+		goto loop;
+		
+		case LIST_QUOTE:
+		cursor+=1;
+		goto skipCheck;
+		
+		case LIST_START:
+		cursor+=1;
+		if(withinList)
+		{
+			parenCount+=1;
+		} else {
+			// need to gather rest of the list
+			withinList = 1;
+		}
+		goto skipCheck;
+		
+		case LIST_END:
+		cursor+=1;
+		if(parenCount)
+		{
+			parenCount-=1;
+		} else {
+			withinList = 0;
+		}
+		goto loop;
+		
+		case LIST_DEFINE:
+		case LIST_SET:
+		case LIST_IF: 
+		case LIST_PLUS:
+		case LIST_SUBT:
+		case LIST_MULT:
+		case LIST_DIVI:
+		case LIST_REMA:
+		cursor += 1;
+		goto loop;
+		
+		default:
+		printf("undefined value to skip!!\n");
+		return cursor;
+	}
 }
 
 //~ static void

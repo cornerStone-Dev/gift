@@ -12,6 +12,8 @@
 #include <math.h>
 #include <termios.h>
 
+#include "hashTable/hashTable.h"
+
 #include "src/fl_std.h"
 #include "src/interface.h"
 

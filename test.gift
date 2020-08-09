@@ -3,6 +3,7 @@
 "Hello"
 #'c'
 #t #f
-(58 #t (1 "yes"))
+'(58 #t (1 "yes"))
 string-length
+(define 33)
 
