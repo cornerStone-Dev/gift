@@ -46,7 +46,7 @@ giftEvaluate(S_Environment $e, u8 $cursor)
 		if(result){
 			return (u8$)result.value;
 		} else {
-			// return nil to express it does not exist
+			// return null to express it does not exist
 			return e.listNullValue;
 		}
 		

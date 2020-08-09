@@ -34,7 +34,7 @@ hashTable/hashTable.h:
 	git clone https://github.com/cornerStone-Dev/hashTable.git
 
 test: bin/giftTest
-#time ./bin/giftTest
+	time ./bin/giftTest test.gift
 
 bin/giftTest: giftTest.c gift.o 
 	gcc -O2 -march=native giftTest.c -s -o bin/giftTest gift.o -Wall -Wextra
