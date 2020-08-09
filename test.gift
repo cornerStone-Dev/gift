@@ -6,4 +6,6 @@
 '(58 #t (1 "yes"))
 string-length
 (define 33)
+(define happy 1)
+happy
 

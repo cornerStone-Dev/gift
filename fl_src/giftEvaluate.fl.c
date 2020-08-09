@@ -7,6 +7,7 @@ giftEvaluate(S_Environment $e, u8 $cursor)
 	T_hashTableNode $result;
 	u8              $symbol;
 	u8              $value;
+	u64             length;
 	switch($cursor)
 	{
 		case LIST_0:
@@ -36,7 +37,7 @@ giftEvaluate(S_Environment $e, u8 $cursor)
 		
 		case LIST_SYMBOL:
 		cursor+=1;
-		T_hashTableNode $result =
+		result =
 		hashTable_find_internal(
 				e.hashTable,
 				cursor,
@@ -47,7 +48,7 @@ giftEvaluate(S_Environment $e, u8 $cursor)
 			return (u8$)result.value;
 		} else {
 			// return null to express it does not exist
-			return e.listNullValue;
+			return @e.listNullValue;
 		}
 		
 		default:
@@ -85,24 +86,75 @@ giftEvaluate(S_Environment $e, u8 $cursor)
 		if($cursor != LIST_SYMBOL)
 		{
 			symbol = giftEvaluate(e, cursor);
-			if($value != LIST_SYMBOL)
+			if($symbol != LIST_SYMBOL)
 			{
 				printf("Error: attempt to define ");
 				giftPrint(cursor);
-				printf(" which is not a symbol.\n");
+				printf(", must be a symbol.\n");
 				return @e.undefinedValue;
 			}
-		} else {
-			symbol = cursor;
 		}
+		symbol = cursor;
 		// skip over symbol or expression resulting in a symbol
 		cursor = skipItem(cursor);
-		if($cursor == LIST_UNDEFINED){
-			return cursor;
-		}
 		// evaluate expression that will become bound to the symbol
 		value = giftEvaluate(e, cursor);
+		// deal with special cases
+		if($value == LIST_UNDEFINED){
+			printf("Error: attempt to define ");
+			giftPrint(symbol);
+			printf(" as an expression resulting in an undefined value.\n");
+			return value;
+		}
+		symbol+=1;
+		u64 symbolLength = strlen(symbol);
+		if($value == LIST_NULL){
+			// delete the node if it exists
+			if(hashTable_delete_internal(
+				e.hashTable,
+				symbol,
+				symbolLength,
+				(u64$)@value)==0)
+			{
+				free(value);
+			}
+			return @e.listTrueValue;
+		}
+		// insert value
+		// search for existing symbol
+		result =
+		hashTable_find_internal(
+				e.hashTable,
+				symbol,
+				symbolLength );
 		
+		// get size of value, cursor will point to the end
+		// TODO this is not efficent is this is a large item, make better
+		// make this a function call to getSize with special cases
+		cursor = skipItem(value);
+		length = cursor - value;
+		// result is 0 if nothing is found
+		if(result){
+			// free old value
+			free((u8$)result.value);
+			// malloc fresh allocation
+			result.value = (u64)malloc(length);
+			// copy value in
+			memmove((u8$)result.value, value, length);
+			return @e.listTrueValue;
+		} else {
+			// malloc fresh allocation
+			cursor = malloc(length);
+			// copy value in
+			memmove(cursor, value, length);
+			// insert into has table
+			HashTable_insert_internal(
+				e.hashTable,
+				symbol,
+				symbolLength,
+				(u64)cursor);
+			return @e.listTrueValue;
+		}
 		
 		
 		return 0;
