@@ -243,24 +243,29 @@ evaluateDispatch:
 		
 		// primitive procedure
 		case LIST_PLUS:
+		case LIST_SUBT:
+		case LIST_MULT:
+		case LIST_DIVI:
+		case LIST_REMA:
 		cursor+=1;
 		// open a heap cursor
 		value = getHeapCursor(e);
-		// record start of args
-		procedure = e.sp;
-		while($cursor != LIST_END)
-		{
-			// accumulate arguments
-			$e.sp = giftEvaluate(e, cursor);
-			e.sp+=1;
-			stackCount+=1;
-			cursor = skipItem(cursor);
-		}
-		// e.sp-=stackCount;
-		// return giftAddProcedure(e, value, procedure, stackCount);
-		value = giftAddProcedure(e, value, procedure, stackCount);
-		// pop stack
-		e.sp-=stackCount;
+		value = evalMathExpr(e, cursor, value, ($(cursor-1)-LIST_PLUS));
+		//~ // record start of args
+		//~ procedure = e.sp;
+		//~ while($cursor != LIST_END)
+		//~ {
+			//~ // accumulate arguments
+			//~ $e.sp = giftEvaluate(e, cursor);
+			//~ e.sp+=1;
+			//~ stackCount+=1;
+			//~ cursor = skipItem(cursor);
+		//~ }
+		//~ // e.sp-=stackCount;
+		//~ // return giftAddProcedure(e, value, procedure, stackCount);
+		//~ value = giftAddProcedure(e, value, procedure, stackCount);
+		//~ // pop stack
+		//~ e.sp-=stackCount;
 		u8 $transformedSource=value-4;
 		for(u32 x =0; x<20;x+=1)
 		{
@@ -348,7 +353,6 @@ giftAddProcedure(S_Environment $e, u8 $cursor, u8 $$args, u64 numArgs)
 	u8 $currentArg;
 	U_Data arg1, arg2;
 	u8 type1, type2, typeComp;
-	s64 total = 0;
 	if(numArgs<2){
 		printf("ERROR: minimum of 2 parameters for '+' procedure.\n");
 	}
@@ -410,5 +414,149 @@ giftAddProcedure(S_Environment $e, u8 $cursor, u8 $$args, u64 numArgs)
 	}
 	finalizeHeapCursor(e, cursor, end);
 	return cursor; 
+}
+
+u8$
+evalMathExpr(S_Environment $e, u8 $t, u8 $out, u8 op)
+{
+	U_Data arg[2];
+	f64 arg3;
+	u8 $next, $end;
+	u8 type[2];
+	u8 typeComp;
+	u8 typeIdx=0;
+	again:
+	next = t;
+	t = giftEvaluate(e, t);
+	if($t == LIST_FLOAT) // its a float
+	{
+		t+=1;
+		arg[typeIdx].d = readListFloat(t);
+		type[typeIdx] = 2;
+		//next+=8;
+	} else if ($t <= LIST_INT8)
+	{ // its an int
+		t+=1;
+		arg[typeIdx].i = readListInt(t, ($(t-1)));
+		type[typeIdx] = 1;
+		//next+=($(t-1));
+	} else {
+		printf("ERROR: Math is for only floats and ints.\n");
+		return @e.undefinedValue;
+	}
+	next = skipItem(next);
+	t = next;
+	if(typeIdx==0){
+		typeIdx=1;
+		if ($t==LIST_END)
+		{
+			// only one parameter
+			// minus is only valid situation
+			if(op ==1){
+				if (type[0]!=1)
+				{
+					end = listWriteFloat(out, -(arg[0].d));
+				} else {
+					end = listWriteInt(out, -(arg[0].i));
+				}
+				finalizeHeapCursor(e, out, end);
+				return out;
+			} else {
+				printf("ERROR: minimum of 2 parameters for +,*,/,%%.\n");
+				return @e.undefinedValue;
+			}
+		}
+		goto again;
+	}
+	// now that everything is recorded deal with types
+	typeComp = type[0]|type[1];
+	switch(op){
+		case 0:
+		if (typeComp==1)
+		{
+			arg[0].i = arg[0].i+arg[1].i;
+		} else if (typeComp==2) {
+			arg[0].d = arg[0].d+arg[1].d;
+		} else if (type[0]==2) {
+			arg[0].d = arg[0].d+arg[1].i;
+		} else {
+			arg[0].d = arg[0].i+arg[1].d;
+			type[0] = 2;
+		}
+		break;
+		case 1:
+		if (typeComp==1)
+		{
+			arg[0].i = arg[0].i-arg[1].i;
+		} else if (typeComp==2) {
+			arg[0].d = arg[0].d-arg[1].d;
+		} else if (type[0]==2) {
+			arg[0].d = arg[0].d-arg[1].i;
+		} else {
+			arg[0].d = arg[0].i-arg[1].d;
+			type[0] = 2;
+		}
+		break;
+		case 2:
+		if (typeComp==1)
+		{
+			arg[0].i = arg[0].i*arg[1].i;
+		} else if (typeComp==2) {
+			arg[0].d = arg[0].d*arg[1].d;
+		} else if (type[0]==2) {
+			arg[0].d = arg[0].d*arg[1].i;
+		} else {
+			arg[0].d = arg[0].i*arg[1].d;
+			type[0] = 2;
+		}
+		break;
+		case 3:
+		if (typeComp==1)
+		{
+			arg[0].i = arg[0].i/arg[1].i;
+		} else if (typeComp==2) {
+			arg[0].d = arg[0].d/arg[1].d;
+		} else if (type[0]==2) {
+			arg[0].d = arg[0].d/arg[1].i;
+		} else {
+			arg[0].d = arg[0].i/arg[1].d;
+			type[0] = 2;
+		}
+		break;
+		case 4:
+		if (typeComp==1)
+		{
+			arg[0].i = arg[0].i%arg[1].i;
+		} else if (typeComp==2) {
+			arg3 = arg[0].d/arg[1].d;
+			arg3 = modf(arg3, @arg[0].d);
+			arg[0].d = arg3*arg[1].d;
+		} else if (type[0]==2) {
+			arg[1].d = arg[1].i;
+			arg3 = arg[0].d/arg[1].d;
+			arg3 = modf(arg3, @arg[0].d);
+			arg[0].d = arg3*arg[1].d;
+		} else {
+			arg[0].d = arg[0].i;
+			arg3 = arg[0].d/arg[1].d;
+			arg3 = modf(arg3, @arg[0].d);
+			arg[0].d = arg3*arg[1].d;
+			type[0] = 2;
+		}
+		break;
+	}
+	if ($t==LIST_END)
+	{
+		if (type[0]!=1)
+		{
+			end = listWriteFloat(out, arg[0].d);
+		} else {
+			//printf("computed value %ld\n", arg[0].i);
+			end = listWriteInt(out, arg[0].i);
+		}
+		finalizeHeapCursor(e, out, end);
+		return out;
+	}
+	goto again;
 }
 
