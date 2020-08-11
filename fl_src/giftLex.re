@@ -289,6 +289,12 @@ skipCheck:
 		cursor+=1;
 		goto loop;
 	}
+	
+	"lambda" {
+		*cursor = LIST_LAMBDA;
+		cursor+=1;
+		goto loop;
+	}
 
 	"+" {
 		*cursor = LIST_PLUS;

@@ -177,7 +177,8 @@ giftInit(S_Environment $$e)
 	}
 
 	// heap set up
-	env.heap = malloc(256*1024); // 256 kb = size of L2 cache(CoffeeLake)
+	// 256 kb = size of L2 cache(CoffeeLake), also 32kb "live" set fits in L1
+	env.heap = malloc(256*1024); 
 	env.heapTop = (256*1024)-1-16;
 
 	// symbol table set up
@@ -187,7 +188,7 @@ giftInit(S_Environment $$e)
 	}
 	
 	// stack set up
-	env.stack = malloc(128*8);
+	env.stack = malloc(256*8);
 	env.sp = env.stack;
 
 	// constants

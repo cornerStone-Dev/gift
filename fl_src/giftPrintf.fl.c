@@ -164,6 +164,11 @@ skipCheck:
 		value+=1;
 		goto loop;
 		
+		case LIST_LAMBDA:
+		printf("lambda");
+		value+=1;
+		goto loop;
+		
 		case LIST_UNDEFINED:
 		printf("<Undefined Value>");
 		value+=1;

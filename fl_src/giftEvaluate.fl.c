@@ -277,6 +277,10 @@ evaluateDispatch:
 		printf("heapBottom=%ld\n",e.heapBottom);
 		return value;
 		
+		case LIST_LAMBDA:
+		// the result of a lambda is a procedure
+		// we must compile the procedure from the inputs
+		
 		default:
 		printf("Syntax error on ");
 		giftPrint(cursor);
