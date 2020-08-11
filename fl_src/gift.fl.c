@@ -153,9 +153,9 @@ loadFile(u8 $file_name, u8 as_function)
 	/* 0x03 terminate buffer, leave return in sub file */
 	if (as_function){
 		buffer[fileSize]=';';
-		buffer[fileSize+1]=3;
+		buffer[fileSize+1]=0;
 	} else {
-		buffer[fileSize]=3;
+		buffer[fileSize]=0;
 	}
 	fclose (pFile);
 	// TODO update to maybe not use garbage collector

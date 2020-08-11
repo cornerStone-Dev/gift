@@ -4,7 +4,7 @@
 /*!re2c                              // start of re2c block
 	
 	// comments and white space
-	scm = ";" [^\n\x03]* "\n";
+	scm = ";" [^\n\x00]* "\n";
 	wsp = ([ \r\n\t] | scm )+;
 
 	// integer literals
@@ -19,12 +19,12 @@
 	flt = "-"? (frc exp? | [0-9]+ exp) [fFlL]?;
 
 	// string literals
-	string_lit = ["] ([^"\x03] | ([\\] ["]))* ["];
+	string_lit = ["] ([^"\x00] | ([\\] ["]))* ["];
 	string_lit_chain = ([^"\n] | ([\\] ["]))* "\n";
 	string_lit_end = ([^"\n] | ([\\] ["]))* ["];
 	
 	// character literals
-	char_lit = [#] ['] ([^'\x03] | ([\\] [']))* ['];
+	char_lit = [#] ['] ([^'\\\x00] | ([\\] ['nrt\\])) ['];
 	
 	identifier = [a-zA-Z_!$%&/*:<>=?\x5e~][a-zA-Z_!$%&/*:<>=?\x5e~0-9+.@-]*;
 	
@@ -146,7 +146,7 @@ skipCheck:
 	/*!re2c                          // start of re2c block **/
 	re2c:define:YYCTYPE = "u8";      //   configuration that defines YYCTYPE
 	re2c:yyfill:enable  = 0;         //   configuration that turns off YYFILL
-									 //
+
 	* { 
 		u8 *s=start;
 		u8 *f=YYCURSOR;
@@ -165,7 +165,7 @@ skipCheck:
 		fputc ( '\n', stdout);
 		goto skipCheck;
 	}
-	[\x03] { /* *t = LIST_END_OF_BUFF; */ return 0; }
+	[\x00] { /* *t = LIST_END_OF_BUFF; */ return 0; }
 	
 	wsp {
 		//~ while (start!=YYCURSOR){
@@ -216,6 +216,9 @@ skipCheck:
 				break;
 				case 't':
 				*cursor = 0x09;
+				break;
+				case '\\':
+				*cursor = 0x5C;
 				break;
 			}
 			break;
