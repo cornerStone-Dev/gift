@@ -8,3 +8,4 @@ hashTable/
 src/
 gift.o
 *.geany
+*.s

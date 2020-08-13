@@ -120,13 +120,15 @@ evaluateDispatch:
 		cursor = skipItem(value);
 		length = cursor - value;
 		// result is 0 if nothing is found
+		// malloc fresh allocation
+		cursor = malloc((length+7)/8*8);
+		// copy value in
+		memmove(cursor, value, length);
+		
 		if(result){
 			// free old value
 			free((u8$)result.value);
-			// malloc fresh allocation
-			result.value = (u64)malloc((length+7)/8*8);
-			// copy value in
-			memmove((u8$)result.value, value, length);
+			result.value = (u64)cursor;
 			return @e.listTrueValue;
 		} else {
 			// malloc fresh allocation

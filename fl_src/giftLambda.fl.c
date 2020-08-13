@@ -64,8 +64,19 @@ be evaluated later. let expressions bind in symbols locally, these are processed
  * Section Ultimate
 *******************************************************************************/
 
+
+// we will need a stack of stack pointers or offsets to manage the generated
+// stack offset code so that the evaluation of sub procedures is done correctly
+// that is to say when they increment the stack pointer(correctly) it does not
+// cause our byte to return the wrong thing.
 u8$
 giftLambda(S_Environment $e, u8 $cursor)
 {
+	u8 $output = getHeapCursor(e);
+	cursor+=1;
+	if($cursor== LIST_START)
+	{
+		
+	}
 	return 0;
 }
