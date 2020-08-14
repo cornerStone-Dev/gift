@@ -69,14 +69,80 @@ be evaluated later. let expressions bind in symbols locally, these are processed
 // stack offset code so that the evaluation of sub procedures is done correctly
 // that is to say when they increment the stack pointer(correctly) it does not
 // cause our byte to return the wrong thing.
+
+// lambda ::= formals body.
+
+// formals ::= SYMBOL
+// formals ::= OPAREN SYMBOL* CPAREN
+// formals ::= OPAREN SYMBOL+ DOT SYMBOL CPAREN
+
+// body ::= expression+
+
+// expression ::= everything stuff
+
+
 u8$
 giftLambda(S_Environment $e, u8 $cursor)
 {
 	u8 $output = getHeapCursor(e);
 	cursor+=1;
-	if($cursor== LIST_START)
-	{
-		
-	}
+	
+	cursor = parseFormals(e, cursor, output);
+	
 	return 0;
 }
+
+// when parse formals is complete the symbol table is loaded with argument
+// names, the arity requirements are emitted, the cursor is one past
+// the arguments
+u8$
+parseFormals(S_Environment $e, u8 $cursor, u8 $output)
+{
+	u32 argumentCount;
+	// enter into scope
+	stringListStack_enterScope(e.sls);
+	if($cursor== LIST_SYMBOL)
+	{
+		// single argument, everything will get concatenated
+		cursor+=1;
+		argumentCount+=1;
+		cursor = parseSymbol(e, cursor);
+		// emit takes any amount of arguments token
+		
+		
+	} else if ($cursor == LIST_START) {
+		// list of arguments
+		cursor+=1;
+		if ($cursor == LIST_END)
+		{
+			// we have completed the parsing of the arguments
+			// emit the arity requirements bytecode
+			cursor+=1;
+			goto done;
+		}
+		if ($cursor != LIST_SYMBOL)
+		{
+			// syntax error, with message
+			cursor = parseSymbol(e, cursor);
+		}
+		
+		
+		
+	} else {
+		// syntax error, with message
+	}
+	done:
+	return cursor;
+}
+
+u8$
+parseSymbol(S_Environment $e, u8 $cursor)
+{
+	// we have symbol in the formals
+	// add to symbol table and move cursor past it
+	u64 length = strlen(cursor);
+	stringListStack_insert_internal(e.sls, cursor, length, 0);
+	cursor = cursor + length + 1;
+	return cursor;
+}
+

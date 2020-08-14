@@ -1,8 +1,8 @@
 
 all: bin tool_output tool src gift.o
 
-gift.o: florida_c/bin/flct hashTable/hashTable.h src/source.c \
-tool_output/giftLex.c
+gift.o: florida_c/bin/flct hashTable/hashTable.h \
+stringListStack/stringListStack.h src/source.c tool_output/giftLex.c
 	gcc -Os -march=native -fno-builtin-strlen -fno-builtin-memmove \
 	-fno-builtin-memset -fno-stack-protector -c -o gift.o src/source.c \
 	-Wall -Wextra -Wno-unused-function -Wno-pointer-sign
@@ -32,6 +32,9 @@ florida_c/bin/flct:
 
 hashTable/hashTable.h:
 	git clone https://github.com/cornerStone-Dev/hashTable.git
+
+stringListStack/stringListStack.h:
+	git clone https://github.com/cornerStone-Dev/stringListStack.git
 
 test: bin/giftTest
 	time ./bin/giftTest test.gift

@@ -18,6 +18,11 @@
 #include "../hashTable/hashTable.h"
 #include "../hashTable/hashTable.c"
 
+#define  STRINGLISTSTACK_ASSUME_SPACE
+#define  STRINGLISTSTACK_STATIC_BUILD_IN
+#include "../stringListStack/stringListStack.h"
+#include "../stringListStack/stringListStack.c"
+
 #include "../tool_output/giftLex.c"
 
 pub union U_Data {
@@ -42,6 +47,7 @@ pub struct S_Environment{
 	// parameter stack
 	u8  $$stack;
 	u8  $$sp;
+	S_stringListStack $sls;
 	u8            $tokens;
 	u8 $          yycur;
 	u8 $          buff;
@@ -183,6 +189,12 @@ giftInit(S_Environment $$e)
 
 	// symbol table set up
 	returnCode = hashTable_init(@env.hashTable);
+	if(returnCode){
+		return returnCode;
+	}
+	
+	// set up string list stack
+	returnCode = stringListStack_init(@env.sls);
 	if(returnCode){
 		return returnCode;
 	}

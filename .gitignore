@@ -5,6 +5,7 @@ tool/
 tool_output/
 florida_c/
 hashTable/
+stringListStack/
 src/
 gift.o
 *.geany

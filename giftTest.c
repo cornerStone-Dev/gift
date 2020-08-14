@@ -13,6 +13,7 @@
 #include <termios.h>
 
 #include "hashTable/hashTable.h"
+#include "stringListStack/stringListStack.h"
 
 #include "src/fl_std.h"
 #include "src/interface.h"
