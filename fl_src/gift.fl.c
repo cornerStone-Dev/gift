@@ -48,6 +48,7 @@ pub struct S_Environment{
 	u8  $$stack;
 	u8  $$sp;
 	S_stringListStack $sls;
+	u8                $$arguments;
 	u8            $tokens;
 	u8 $          yycur;
 	u8 $          buff;
@@ -208,6 +209,8 @@ giftInit(S_Environment $$e)
 	env.listTrueValue = LIST_TRUE;
 	env.listFalseValue = LIST_FALSE;
 	env.undefinedValue = LIST_UNDEFINED;
+	
+	env.arguments = 0;
 	
 	$e = env;
 	return 0;

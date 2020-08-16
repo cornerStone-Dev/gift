@@ -325,6 +325,12 @@ skipCheck:
 		cursor++;
 		goto loop;
 	}
+	
+	"." {
+		*cursor = LIST_DOT;
+		cursor++;
+		goto loop;
+	}
 
 	"(" {
 		if(withinList)

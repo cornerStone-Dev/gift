@@ -169,6 +169,28 @@ skipCheck:
 		value+=1;
 		goto loop;
 		
+		case LIST_DOT:
+		printf(".");
+		value+=1;
+		goto loop;
+		
+		case LIST_PROCEDURE:
+		printf("#<procedure argCode=%02X>", $(value+1));
+		value+=2;
+		goto loop;
+		
+		case LIST_REG0:
+		case LIST_REG1:
+		case LIST_REG2:
+		case LIST_REG3:
+		case LIST_REG4:
+		case LIST_REG5:
+		case LIST_REG6:
+		case LIST_REG7:
+		printf("register[%d]", $value-LIST_REG0);
+		value+=1;
+		goto loop;
+		
 		case LIST_UNDEFINED:
 		printf("<Undefined Value>");
 		value+=1;

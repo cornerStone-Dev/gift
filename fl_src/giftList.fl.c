@@ -162,7 +162,21 @@ skipCheck:
 		case LIST_MULT:
 		case LIST_DIVI:
 		case LIST_REMA:
+		case LIST_LAMBDA:
+		case LIST_DOT:
+		case LIST_REG0:
+		case LIST_REG1:
+		case LIST_REG2:
+		case LIST_REG3:
+		case LIST_REG4:
+		case LIST_REG5:
+		case LIST_REG6:
+		case LIST_REG7:
 		cursor += 1;
+		goto loop;
+		
+		case LIST_PROCEDURE:
+		cursor += 2;
 		goto loop;
 		
 		default:

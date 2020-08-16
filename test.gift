@@ -13,3 +13,5 @@ happy
 (if 5 105 21)
 (/ (+ (+ happy 1) (* 5 5 happy 55.6)) 1000)
 (% 10.0 15.0)
+(lambda (x y) (+ x y))
+((lambda (x y) (+ x y)) 5 6)

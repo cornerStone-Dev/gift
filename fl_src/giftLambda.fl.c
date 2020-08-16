@@ -96,14 +96,19 @@ giftLambda(S_Environment $e, u8 $cursor)
 	$output = LIST_PROCEDURE;
 	output+=1;
 	
+	// enter into scope
+	stringListStack_enterScope(e.sls);
 	c = parseFormals(e, cursor);
 	cursor = c.cursor;
 	$output = c.argumentCount;
 	output+=1;
 	
-	parseBody(e, cursor, output);
+	output = parseBody(e, cursor, output);
+	// leave scope
+	stringListStack_leaveScope(e.sls);
+	finalizeHeapCursor(e, start, output);
 	
-	return 0;
+	return start;
 }
 
 // when parse formals is complete the symbol table is loaded with argument
@@ -115,8 +120,7 @@ parseFormals(S_Environment $e, u8 $cursor)
 	S_Formals c;
 	c.cursor = cursor;
 	c.argumentCount = 0;
-	// enter into scope
-	stringListStack_enterScope(e.sls);
+	
 	if($c.cursor== LIST_SYMBOL)
 	{
 		// single argument, everything will get concatenated
@@ -178,7 +182,9 @@ parseSymbol(S_Environment $e, u8 $cursor)
 {
 	// we have symbol in the formals
 	// add to symbol table and move cursor past it
-	u64 length = strlen(cursor);
+	u64 length;
+	cursor+=1;
+	length = strlen(cursor);
 	stringListStack_insert_internal(e.sls, cursor, length, 0);
 	cursor = cursor + length + 1;
 	return cursor;
@@ -187,18 +193,88 @@ parseSymbol(S_Environment $e, u8 $cursor)
 
 // this walks through the body of lambda
 // there is an implicit "begin" at the start of the body, lets make it explicit
+// going to try to not do it
 // the arguments to the function have been aded to the symbols
 // they were added in register order, so now we get their index and emit
 // corresonding register commands
 u8$
 parseBody(S_Environment $e, u8 $cursor, u8 $output)
 {
-	u8 $start = cursor;
+	u8 $start;
+	u64 length;
+	u64 parenCount=0;
+	u32 index=0;
+	s32 returnCode;
+	
+	//$output = LIST_BEGIN;
+	//output+=1;
+	
+again:
+	start = cursor;
+	
+loop:
+	
+	// skip list starts
 	if ($cursor == LIST_START)
 	{
-		
+		//~ output = writeRun(start,cursor,output);
+		//~ output = LIST_START;
+		//~ output+=1;
+		cursor+=1;
+		parenCount+=1;
+	}
+	if ($cursor == LIST_END)
+	{
+		cursor+=1;
+		if(parenCount)
+		{
+			parenCount-=1;
+			goto loop;
+		} else {
+			goto exit;
+		}
+	}
+	if ($cursor == LIST_SYMBOL)
+	{
+		// write out what has been read so far
+		output = writeRun(start,cursor,output);
+		// move to embedded c string
+		cursor+=1;
+		// look up symbol within arguments
+		length = strlen(cursor);
+		printf("symbol is %s\n", cursor);
+		returnCode = stringListStack_find_internal(
+						e.sls,
+						cursor,
+						length,
+						@index);
+		if (returnCode){
+			printf("Lambda Parser: Body, couldnt find symbol. %d\n", index);
+		}
+		// emit register look up
+		$output = LIST_REG0 + index;
+		output+=1;
+		// move cursor
+		cursor+=length+1;
+		goto again;
 	}
 	cursor = skipItem(cursor);
-	return 0;
+	goto loop;
+	
+exit:
+	output = writeRun(start,cursor,output);
+	
+	// TODO could return cursor!!
+	return output;
+}
+
+u8$
+writeRun(u8 $start, u8 $cursor, u8 $output)
+{
+	u64 runLength;
+	runLength = cursor - start;
+	memmove(output, start, runLength);
+	output += runLength;
+	return output;
 }
 

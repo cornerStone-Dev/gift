@@ -6,7 +6,9 @@ giftEvaluate(S_Environment $e, u8 $cursor)
 	T_hashTableNode $result;
 	u8              $symbol;
 	u8              $value;
+	u8              $heapCursor=0;
 	u8              $$procedure;
+	u8              $$arguments = e.arguments;
 	u64             length;
 	u64 stackCount = 0;
 
@@ -53,6 +55,16 @@ evaluateDispatch:
 			// return null to express it does not exist
 			return @e.listNullValue;
 		}
+		
+		case LIST_REG0:
+		case LIST_REG1:
+		case LIST_REG2:
+		case LIST_REG3:
+		case LIST_REG4:
+		case LIST_REG5:
+		case LIST_REG6:
+		case LIST_REG7:
+		return $(arguments+($cursor-LIST_REG0));
 		
 		default:
 		printf("Syntax error on ");
@@ -233,14 +245,41 @@ evaluateDispatch:
 		// other procedure
 		case LIST_START:
 		case LIST_SYMBOL:
-		value = getHeapCursor(e);
+		if(heapCursor == 0){
+			heapCursor = getHeapCursor(e);
+		}
+		procedure = e.sp;
+		arguments = e.sp+1;
+		e.arguments = arguments;
 		do{
 			// accumulate procedure and arguments
+			printf("cursor = %d\n",$cursor);
 			$e.sp = giftEvaluate(e, cursor);
 			e.sp+=1;
 			stackCount+=1;
 			cursor = skipItem(cursor);
-		} while($cursor != LIST_END);
+		} while($cursor != LIST_END && stackCount<4);
+		// sudo apply here
+		u8$ proc = $procedure;
+		if($proc != LIST_PROCEDURE){
+			printf("Error: expected procedure\n");
+		}
+		proc+=1;
+		if ($proc != stackCount-1 ){
+			printf("Error: expected %d arguments,  there is %ld\n",$proc, stackCount-1);
+		}
+		proc+=1;
+		// we are now looking at the body
+		// assume single body
+		cursor = proc;
+		printf("cursor = %d\n",$cursor);
+		printf("DISPATCH\n");
+		//exit(0);
+		goto evaluateDispatch;
+		
+		
+		
+		
 		break;
 		
 		// primitive procedure
@@ -251,8 +290,10 @@ evaluateDispatch:
 		case LIST_REMA:
 		cursor+=1;
 		// open a heap cursor
-		value = getHeapCursor(e);
-		value = evalMathExpr(e, cursor, value, ($(cursor-1)-LIST_PLUS));
+		if(heapCursor == 0){
+			heapCursor = getHeapCursor(e);
+		}
+		value = evalMathExpr(e, cursor, heapCursor, ($(cursor-1)-LIST_PLUS));
 		//~ // record start of args
 		//~ procedure = e.sp;
 		//~ while($cursor != LIST_END)
@@ -282,6 +323,7 @@ evaluateDispatch:
 		case LIST_LAMBDA:
 		// the result of a lambda is a procedure
 		// we must compile the procedure from the inputs
+		return giftLambda(e, cursor);
 		
 		default:
 		printf("Syntax error on ");
