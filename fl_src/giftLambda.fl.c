@@ -80,14 +80,28 @@ be evaluated later. let expressions bind in symbols locally, these are processed
 
 // expression ::= everything stuff
 
+struct S_Formals
+{
+	u8  $cursor;
+	u64 argumentCount;
+};
 
 u8$
 giftLambda(S_Environment $e, u8 $cursor)
 {
 	u8 $output = getHeapCursor(e);
+	u8 $start = output;
+	S_Formals c;
 	cursor+=1;
+	$output = LIST_PROCEDURE;
+	output+=1;
 	
-	cursor = parseFormals(e, cursor, output);
+	c = parseFormals(e, cursor);
+	cursor = c.cursor;
+	$output = c.argumentCount;
+	output+=1;
+	
+	parseBody(e, cursor, output);
 	
 	return 0;
 }
@@ -95,44 +109,68 @@ giftLambda(S_Environment $e, u8 $cursor)
 // when parse formals is complete the symbol table is loaded with argument
 // names, the arity requirements are emitted, the cursor is one past
 // the arguments
-u8$
-parseFormals(S_Environment $e, u8 $cursor, u8 $output)
+S_Formals
+parseFormals(S_Environment $e, u8 $cursor)
 {
-	u32 argumentCount;
+	S_Formals c;
+	c.cursor = cursor;
+	c.argumentCount = 0;
 	// enter into scope
 	stringListStack_enterScope(e.sls);
-	if($cursor== LIST_SYMBOL)
+	if($c.cursor== LIST_SYMBOL)
 	{
 		// single argument, everything will get concatenated
-		cursor+=1;
-		argumentCount+=1;
-		cursor = parseSymbol(e, cursor);
+		c.cursor+=1;
+		c.cursor = parseSymbol(e, c.cursor);
 		// emit takes any amount of arguments token
-		
-		
-	} else if ($cursor == LIST_START) {
+		c.argumentCount = 0xFF;
+	} else if ($c.cursor == LIST_START) {
 		// list of arguments
-		cursor+=1;
-		if ($cursor == LIST_END)
+		c.cursor+=1;
+		
+	loop:
+		if ($c.cursor == LIST_END)
 		{
 			// we have completed the parsing of the arguments
 			// emit the arity requirements bytecode
-			cursor+=1;
+			c.cursor+=1;
 			goto done;
 		}
-		if ($cursor != LIST_SYMBOL)
+		if ($c.cursor != LIST_SYMBOL)
 		{
-			// syntax error, with message
-			cursor = parseSymbol(e, cursor);
+			goto error;
+		}
+		// $c.cursor == LIST_SYMBOL
+		c.argumentCount+=1;
+		c.cursor = parseSymbol(e, c.cursor);
+		
+		// check for dot
+		if ($c.cursor == LIST_DOT)
+		{
+			c.cursor+=1;
+			c.cursor = parseSymbol(e, c.cursor);
+			c.argumentCount|=0x80;
+			// must end after this symbol
+			if ($c.cursor != LIST_END)
+			{
+				goto error;
+			}
+			goto done;
 		}
 		
-		
-		
+		goto loop;
 	} else {
-		// syntax error, with message
+		goto error;
 	}
 	done:
-	return cursor;
+	return c;
+	
+	error:
+	// syntax error, with message
+	printf("Lambda Parser: Expected single symbol or list of symbols "
+			"or a list of symbols dot symbol.");
+	//TODO return a dummy function?
+	return (S_Formals){0,0};
 }
 
 u8$
@@ -144,5 +182,23 @@ parseSymbol(S_Environment $e, u8 $cursor)
 	stringListStack_insert_internal(e.sls, cursor, length, 0);
 	cursor = cursor + length + 1;
 	return cursor;
+}
+
+
+// this walks through the body of lambda
+// there is an implicit "begin" at the start of the body, lets make it explicit
+// the arguments to the function have been aded to the symbols
+// they were added in register order, so now we get their index and emit
+// corresonding register commands
+u8$
+parseBody(S_Environment $e, u8 $cursor, u8 $output)
+{
+	u8 $start = cursor;
+	if ($cursor == LIST_START)
+	{
+		
+	}
+	cursor = skipItem(cursor);
+	return 0;
 }
 

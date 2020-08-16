@@ -82,7 +82,6 @@ listWriteFloat(u8 $out, f64 value)
 u8$
 skipItem(u8 $cursor)
 {
-
 	u64 parenCount=0;
 	u64 withinList=0;
 	
