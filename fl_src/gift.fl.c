@@ -102,7 +102,7 @@ giftCommandLine(S_Environment $e, s32 argc, u8 $$argv)
 				$readEnd = 0xFF;
 				transformedSource = cursor;
 				finalizeHeapCursor(e, cursor, readEnd);
-				transformedSource-=4;
+				transformedSource-=2;
 				for(u32 x =0; x<20;x+=1)
 				{
 					printf("[%02X]",transformedSource[x]);

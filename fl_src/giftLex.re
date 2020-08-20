@@ -347,13 +347,15 @@ skipCheck:
 		goto loop;
 	}
 
+	// identifiers are stored differently then strings, assumed < 255 length
 	identifier {
 		u64 length = YYCURSOR-start;
 		*cursor = LIST_SYMBOL;
 		cursor+=1;
+		*cursor = length;
+		cursor+=1;
 		memmove(cursor, start, length);
-		cursor[length]=0;
-		cursor+=length+1;
+		cursor+=length;
 		goto loop;
 	}
 

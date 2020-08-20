@@ -124,9 +124,14 @@ skipCheck:
 		goto loop;
 		
 		case LIST_STRING_N:
-		case LIST_SYMBOL:
 		cursor+=1;
 		cursor += strlen(cursor)+1;
+		goto loop;
+		
+		case LIST_SYMBOL:
+		cursor+=1;
+		cursor += ($cursor)+1;
+		printf("after skip %d\n", $cursor);
 		goto loop;
 		
 		case LIST_QUOTE:

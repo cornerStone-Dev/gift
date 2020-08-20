@@ -107,8 +107,12 @@ skipCheck:
 		
 		case LIST_SYMBOL:
 		value+=1;
-		length = strlen(value)+1; // including null
+		length = $value;
+		value+=1;
+		u8 tmpByte = value[length];
+		value[length] = 0;
 		printf("%s", value);
+		value[length] = tmpByte;
 		value+=length;
 		goto loop;
 		
@@ -197,7 +201,7 @@ skipCheck:
 		goto loop;
 		
 		default:
-		printf("<Unknown Value>");
+		printf("<Unknown Value: context [%02X][%d][%d]>", $(value-2), $value, $(value+1));
 		value+=1;
 		goto loop;
 	}

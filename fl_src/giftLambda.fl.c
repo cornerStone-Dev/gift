@@ -124,7 +124,6 @@ parseFormals(S_Environment $e, u8 $cursor)
 	if($c.cursor== LIST_SYMBOL)
 	{
 		// single argument, everything will get concatenated
-		c.cursor+=1;
 		c.cursor = parseSymbol(e, c.cursor);
 		// emit takes any amount of arguments token
 		c.argumentCount = 0xFF;
@@ -184,9 +183,10 @@ parseSymbol(S_Environment $e, u8 $cursor)
 	// add to symbol table and move cursor past it
 	u64 length;
 	cursor+=1;
-	length = strlen(cursor);
+	length = $cursor;
+	cursor+=1;
 	stringListStack_insert_internal(e.sls, cursor, length, 0);
-	cursor = cursor + length + 1;
+	cursor = cursor + length;
 	return cursor;
 }
 
@@ -241,8 +241,9 @@ loop:
 		// move to embedded c string
 		cursor+=1;
 		// look up symbol within arguments
-		length = strlen(cursor);
-		printf("symbol is %s\n", cursor);
+		length = $cursor;
+		cursor+=1;
+		//printf("symbol is %s\n", cursor);
 		returnCode = stringListStack_find_internal(
 						e.sls,
 						cursor,
@@ -255,7 +256,7 @@ loop:
 		$output = LIST_REG0 + index;
 		output+=1;
 		// move cursor
-		cursor+=length+1;
+		cursor+=length;
 		goto again;
 	}
 	cursor = skipItem(cursor);

@@ -12,9 +12,9 @@ getHeapCursor(S_Environment $e)
 		//garbage_collect();
 		printf("should garbage collect!\n");
 	}
-	p = (@e.heap[currentIndex])+4;
+	p = (@e.heap[currentIndex])+2;
 	//e.cache = p;
-	e.heapIndex+=8;
+	e.heapIndex+=4;
 	return (void $)p;
 }
 
@@ -23,18 +23,18 @@ void
 finalizeHeapCursor(S_Environment $e, u8 $start, u8 $end)
 {
 	//u8  $cache;
-	u32 $size;
+	u16 $size;
 	u64 amountWritten;
 	
 	//cache = e.cache;
 	amountWritten = (end - start);
-	amountWritten = (amountWritten+11)/8;
+	amountWritten = (amountWritten+5)/4;
 	// write size at start
-	size = (u32$)(start-4);
+	size = (u16$)(start-2);
 	$size = amountWritten;
 	// Index should be 8 above the size and 4 above the start
-	e.heapIndex = (start+4)-e.heap;
-	e.heapIndex+=(amountWritten-1)*8; // open cursor adds 8
+	e.heapIndex = (start+2)-e.heap;
+	e.heapIndex+=(amountWritten-1)*4; // open cursor adds 8
 }
 
 //~ void $

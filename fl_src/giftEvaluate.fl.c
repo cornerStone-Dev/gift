@@ -42,12 +42,17 @@ evaluateDispatch:
 		
 		case LIST_SYMBOL:
 		cursor+=1;
+		u32 symbolLength = $cursor;
+		cursor+=1;
+		u8 tmpByte = cursor[symbolLength];
+		cursor[symbolLength] = 0;
 		result =
 		hashTable_find_internal(
 				e.hashTable,
 				cursor,
-				strlen(cursor) );
+				symbolLength );
 				
+		cursor[symbolLength] = tmpByte;
 		// result is 0 if nothing is found
 		if(result){
 			return (u8$)result.value;
@@ -105,7 +110,10 @@ evaluateDispatch:
 			return value;
 		}
 		symbol+=1;
-		u64 symbolLength = strlen(symbol);
+		u64 symbolLength = $symbol;
+		symbol+=1;
+		u8 tmpByte = symbol[symbolLength];
+		symbol[symbolLength] = 0;
 		if($value == LIST_NULL){
 			// delete the node if it exists
 			if(hashTable_delete_internal(
@@ -116,6 +124,7 @@ evaluateDispatch:
 			{
 				free(value);
 			}
+			symbol[symbolLength] = tmpByte;
 			return @e.listTrueValue;
 		}
 		// insert value
@@ -129,6 +138,7 @@ evaluateDispatch:
 		// get size of value, cursor will point to the end
 		// TODO this is not efficent is this is a large item, make better
 		// make this a function call to getSize with special cases
+		symbol[symbolLength] = tmpByte;
 		cursor = skipItem(value);
 		length = cursor - value;
 		// result is 0 if nothing is found
@@ -148,11 +158,13 @@ evaluateDispatch:
 			// copy value in
 			memmove(cursor, value, length);
 			// insert into has table
+			symbol[symbolLength] = 0;
 			HashTable_insert_internal(
 				e.hashTable,
 				symbol,
 				symbolLength,
 				(u64)cursor);
+			symbol[symbolLength] = tmpByte;
 			return @e.listTrueValue;
 		}}
 		
@@ -186,7 +198,10 @@ evaluateDispatch:
 			return value;
 		}
 		symbol+=1;
-		u64 symbolLength = strlen(symbol);
+		u64 symbolLength = $symbol;
+		symbol+=1;
+		u8 tmpByte = symbol[symbolLength];
+		symbol[symbolLength] = 0;
 		if($value == LIST_NULL){
 			// delete the node if it exists
 			if(hashTable_delete_internal(
@@ -197,6 +212,7 @@ evaluateDispatch:
 			{
 				free(value);
 			}
+			symbol[symbolLength] = tmpByte;
 			return @e.listTrueValue;
 		}
 		// insert value
@@ -210,6 +226,7 @@ evaluateDispatch:
 		// get size of value, cursor will point to the end
 		// TODO this is not efficent is this is a large item, make better
 		// make this a function call to getSize with special cases
+		symbol[symbolLength] = tmpByte;
 		cursor = skipItem(value);
 		length = cursor - value;
 		// result is 0 if nothing is found
@@ -309,7 +326,7 @@ evaluateDispatch:
 		//~ value = giftAddProcedure(e, value, procedure, stackCount);
 		//~ // pop stack
 		//~ e.sp-=stackCount;
-		u8 $transformedSource=value-4;
+		u8 $transformedSource=value-2;
 		for(u32 x =0; x<20;x+=1)
 		{
 			printf("[%02X]",transformedSource[x]);
