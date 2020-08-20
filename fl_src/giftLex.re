@@ -355,7 +355,8 @@ skipCheck:
 		*cursor = length;
 		cursor+=1;
 		memmove(cursor, start, length);
-		cursor+=length;
+		cursor[length] = 0;
+		cursor+=length+1;
 		goto loop;
 	}
 

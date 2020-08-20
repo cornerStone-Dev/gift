@@ -126,6 +126,7 @@ parseFormals(S_Environment $e, u8 $cursor)
 		// single argument, everything will get concatenated
 		c.cursor = parseSymbol(e, c.cursor);
 		// emit takes any amount of arguments token
+		// VM needs to concatenate all arguments pass to the procedure
 		c.argumentCount = 0xFF;
 	} else if ($c.cursor == LIST_START) {
 		// list of arguments
@@ -153,6 +154,7 @@ parseFormals(S_Environment $e, u8 $cursor)
 			c.cursor+=1;
 			c.cursor = parseSymbol(e, c.cursor);
 			c.argumentCount|=0x80;
+			// VM needs to concatenate all arguments pass to the procedure
 			// must end after this symbol
 			if ($c.cursor != LIST_END)
 			{
@@ -186,7 +188,7 @@ parseSymbol(S_Environment $e, u8 $cursor)
 	length = $cursor;
 	cursor+=1;
 	stringListStack_insert_internal(e.sls, cursor, length, 0);
-	cursor = cursor + length;
+	cursor = cursor + length + 1;
 	return cursor;
 }
 
@@ -236,27 +238,30 @@ loop:
 	}
 	if ($cursor == LIST_SYMBOL)
 	{
-		// write out what has been read so far
-		output = writeRun(start,cursor,output);
-		// move to embedded c string
-		cursor+=1;
-		// look up symbol within arguments
-		length = $cursor;
-		cursor+=1;
-		//printf("symbol is %s\n", cursor);
+		// get length
+		length = $(cursor+1);
+
 		returnCode = stringListStack_find_internal(
 						e.sls,
-						cursor,
+						cursor+2,
 						length,
 						@index);
+		
+		// symbol not found, assume it will be in global symbol table at runtime
 		if (returnCode){
-			printf("Lambda Parser: Body, couldnt find symbol. %d\n", index);
+			cursor = skipItem(cursor);
+			goto loop;
 		}
+		
+		// write out what has been read so far
+		output = writeRun(start,cursor,output);
+		// move cursor
+		cursor+=length+3;
+		
 		// emit register look up
 		$output = LIST_REG0 + index;
 		output+=1;
-		// move cursor
-		cursor+=length;
+		
 		goto again;
 	}
 	cursor = skipItem(cursor);

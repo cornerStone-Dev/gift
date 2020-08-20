@@ -4,12 +4,10 @@ u8$
 giftEvaluate(S_Environment $e, u8 $cursor)
 {
 	T_hashTableNode $result;
-	u8              $symbol;
 	u8              $value;
 	u8              $heapCursor=0;
 	u8              $$procedure;
 	u8              $$arguments = e.arguments;
-	u64             length;
 	u64 stackCount = 0;
 
 evaluateDispatch:
@@ -44,15 +42,12 @@ evaluateDispatch:
 		cursor+=1;
 		u32 symbolLength = $cursor;
 		cursor+=1;
-		u8 tmpByte = cursor[symbolLength];
-		cursor[symbolLength] = 0;
 		result =
 		hashTable_find_internal(
 				e.hashTable,
 				cursor,
 				symbolLength );
 				
-		cursor[symbolLength] = tmpByte;
 		// result is 0 if nothing is found
 		if(result){
 			return (u8$)result.value;
@@ -81,170 +76,16 @@ evaluateDispatch:
 	switch($cursor)
 	{
 		// TODO pull out define and set! into function
-		case LIST_DEFINE:{
+		case LIST_DEFINE:
 		// define is a special form
 		// creates a binding the global environment
-		cursor+=1;
-		// next expression must evalutate to a symbol
-		if($cursor != LIST_SYMBOL)
-		{
-			symbol = giftEvaluate(e, cursor);
-			if($symbol != LIST_SYMBOL)
-			{
-				printf("Error: attempt to define ");
-				giftPrint(cursor);
-				printf(", must be a symbol.\n");
-				return @e.undefinedValue;
-			}
-		}
-		symbol = cursor;
-		// skip over symbol or expression resulting in a symbol
-		cursor = skipItem(cursor);
-		// evaluate expression that will become bound to the symbol
-		value = giftEvaluate(e, cursor);
-		// deal with special cases
-		if($value == LIST_UNDEFINED){
-			printf("Error: attempt to define ");
-			giftPrint(symbol);
-			printf(" as an expression resulting in an undefined value.\n");
-			return value;
-		}
-		symbol+=1;
-		u64 symbolLength = $symbol;
-		symbol+=1;
-		u8 tmpByte = symbol[symbolLength];
-		symbol[symbolLength] = 0;
-		if($value == LIST_NULL){
-			// delete the node if it exists
-			if(hashTable_delete_internal(
-				e.hashTable,
-				symbol,
-				symbolLength,
-				(u64$)@value)==0)
-			{
-				free(value);
-			}
-			symbol[symbolLength] = tmpByte;
-			return @e.listTrueValue;
-		}
-		// insert value
-		// search for existing symbol
-		result =
-		hashTable_find_internal(
-				e.hashTable,
-				symbol,
-				symbolLength );
+		return evalDefineExpr(e, cursor, 0);
 		
-		// get size of value, cursor will point to the end
-		// TODO this is not efficent is this is a large item, make better
-		// make this a function call to getSize with special cases
-		symbol[symbolLength] = tmpByte;
-		cursor = skipItem(value);
-		length = cursor - value;
-		// result is 0 if nothing is found
-		// malloc fresh allocation
-		cursor = malloc((length+7)/8*8);
-		// copy value in
-		memmove(cursor, value, length);
-		
-		if(result){
-			// free old value
-			free((u8$)result.value);
-			result.value = (u64)cursor;
-			return @e.listTrueValue;
-		} else {
-			// malloc fresh allocation
-			cursor = malloc((length+7)/8*8);
-			// copy value in
-			memmove(cursor, value, length);
-			// insert into has table
-			symbol[symbolLength] = 0;
-			HashTable_insert_internal(
-				e.hashTable,
-				symbol,
-				symbolLength,
-				(u64)cursor);
-			symbol[symbolLength] = tmpByte;
-			return @e.listTrueValue;
-		}}
-		
-		case LIST_SET:{
+		case LIST_SET:
 		// set! is a special form
 		// updates the closest binding in the environment
 		// this version updates the global environment
-		cursor+=1;
-		// next expression must evalutate to a symbol
-		if($cursor != LIST_SYMBOL)
-		{
-			symbol = giftEvaluate(e, cursor);
-			if($symbol != LIST_SYMBOL)
-			{
-				printf("Error: attempt to set! ");
-				giftPrint(cursor);
-				printf(", must be a symbol.\n");
-				return @e.undefinedValue;
-			}
-		}
-		symbol = cursor;
-		// skip over symbol or expression resulting in a symbol
-		cursor = skipItem(cursor);
-		// evaluate expression that will become bound to the symbol
-		value = giftEvaluate(e, cursor);
-		// deal with special cases
-		if($value == LIST_UNDEFINED){
-			printf("Error: attempt to set! ");
-			giftPrint(symbol);
-			printf(" as an expression resulting in an undefined value.\n");
-			return value;
-		}
-		symbol+=1;
-		u64 symbolLength = $symbol;
-		symbol+=1;
-		u8 tmpByte = symbol[symbolLength];
-		symbol[symbolLength] = 0;
-		if($value == LIST_NULL){
-			// delete the node if it exists
-			if(hashTable_delete_internal(
-				e.hashTable,
-				symbol,
-				symbolLength,
-				(u64$)@value)==0)
-			{
-				free(value);
-			}
-			symbol[symbolLength] = tmpByte;
-			return @e.listTrueValue;
-		}
-		// insert value
-		// search for existing symbol
-		result =
-		hashTable_find_internal(
-				e.hashTable,
-				symbol,
-				symbolLength );
-		
-		// get size of value, cursor will point to the end
-		// TODO this is not efficent is this is a large item, make better
-		// make this a function call to getSize with special cases
-		symbol[symbolLength] = tmpByte;
-		cursor = skipItem(value);
-		length = cursor - value;
-		// result is 0 if nothing is found
-		if(result){
-			// free old value
-			free((u8$)result.value);
-			// malloc fresh allocation
-			result.value = (u64)malloc((length+7)/8*8);
-			// copy value in
-			memmove((u8$)result.value, value, length);
-			return @e.listTrueValue;
-		} else {
-			// symbol does not currently exist
-			printf("Error: attempt to set! ");
-			giftPrint(symbol);
-			printf(" which does not exist.\n");
-			return @e.listFalseValue;
-		}}
+		return evalDefineExpr(e, cursor, 1);
 		
 		case LIST_IF:
 		// if special form
@@ -270,12 +111,12 @@ evaluateDispatch:
 		e.arguments = arguments;
 		do{
 			// accumulate procedure and arguments
-			printf("cursor = %d\n",$cursor);
+			//printf("cursor = %d\n",$cursor);
 			$e.sp = giftEvaluate(e, cursor);
 			e.sp+=1;
 			stackCount+=1;
 			cursor = skipItem(cursor);
-		} while($cursor != LIST_END && stackCount<4);
+		} while($cursor != LIST_END);
 		// sudo apply here
 		u8$ proc = $procedure;
 		if($proc != LIST_PROCEDURE){
@@ -289,8 +130,8 @@ evaluateDispatch:
 		// we are now looking at the body
 		// assume single body
 		cursor = proc;
-		printf("cursor = %d\n",$cursor);
-		printf("DISPATCH\n");
+		//printf("cursor = %d\n",$cursor);
+		//printf("DISPATCH\n");
 		//exit(0);
 		goto evaluateDispatch;
 		
@@ -623,5 +464,103 @@ evalMathExpr(S_Environment $e, u8 $t, u8 $out, u8 op)
 		return out;
 	}
 	goto again;
+}
+
+u8$
+evalDefineExpr(S_Environment $e, u8 $cursor, u64 isSet)
+{
+	u8  $symbol;
+	u8  $value;
+	u8  $valueCopy;
+	u64 symbolLength;
+	u64 valueLength;
+	T_hashTableNode $result;
+	// define is a special form
+	// creates a binding the global environment
+	cursor+=1;
+	symbol = cursor;
+	// next expression must evalutate to a symbol
+	if($cursor != LIST_SYMBOL)
+	{
+		symbol = giftEvaluate(e, cursor);
+		if($symbol != LIST_SYMBOL)
+		{
+			printf("Error: attempt to define ");
+			giftPrint(cursor);
+			printf(", must be a symbol.\n");
+			return @e.undefinedValue;
+		}
+	}
+	// skip over symbol or expression resulting in a symbol
+	cursor = skipItem(cursor);
+	// evaluate expression that will become bound to the symbol
+	value = giftEvaluate(e, cursor);
+	// deal with special cases
+	if($value == LIST_UNDEFINED){
+		printf("Error: attempt to define ");
+		giftPrint(symbol);
+		printf(" as an expression resulting in an undefined value.\n");
+		return value;
+	}
+	symbol+=1;
+	symbolLength = $symbol;
+	symbol+=1;
+	if($value == LIST_NULL){
+		// delete the node if it exists
+		if(hashTable_delete_internal(
+			e.hashTable,
+			symbol,
+			symbolLength,
+			(u64$)@value)==0)
+		{
+			free(value);
+		}
+		return @e.listTrueValue;
+	}
+	// get size of value, cursor will point to the end
+	// TODO this is not efficent is this is a large item, make better
+	// make this a function call to getSize with special cases
+	cursor = skipItem(value);
+	valueLength = cursor - value;
+	
+	// insert value
+	// search for existing symbol
+	result =
+	hashTable_find_internal(
+			e.hashTable,
+			symbol,
+			symbolLength );
+	
+	// result is 0 if nothing is found
+	if(result){
+		// free old value
+		free((u8$)result.value);
+		// malloc fresh allocation
+		valueCopy = malloc((valueLength+7)/8*8);
+		// copy value in
+		memmove(valueCopy, value, valueLength);
+		result.value = (u64)valueCopy;
+		return @e.listTrueValue;
+	} else {
+		if (isSet){
+			// symbol does not currently exist
+			printf("Error: attempt to set! ");
+			giftPrint(symbol);
+			printf(" which does not exist.\n");
+			return @e.listFalseValue;
+		} else {
+			// malloc fresh allocation
+			valueCopy = malloc((valueLength+7)/8*8);
+			// copy value in
+			memmove(valueCopy, value, valueLength);
+			// insert into has table
+			HashTable_insert_internal(
+				e.hashTable,
+				symbol,
+				symbolLength,
+				(u64)valueCopy);
+			return @e.listTrueValue;
+		}
+	}
 }
 

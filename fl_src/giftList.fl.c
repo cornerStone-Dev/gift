@@ -130,8 +130,7 @@ skipCheck:
 		
 		case LIST_SYMBOL:
 		cursor+=1;
-		cursor += ($cursor)+1;
-		printf("after skip %d\n", $cursor);
+		cursor += ($cursor)+2;
 		goto loop;
 		
 		case LIST_QUOTE:

@@ -109,11 +109,8 @@ skipCheck:
 		value+=1;
 		length = $value;
 		value+=1;
-		u8 tmpByte = value[length];
-		value[length] = 0;
 		printf("%s", value);
-		value[length] = tmpByte;
-		value+=length;
+		value+=length+1;
 		goto loop;
 		
 		case LIST_STRING_N:
