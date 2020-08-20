@@ -219,9 +219,6 @@ loop:
 	// skip list starts
 	if ($cursor == LIST_START)
 	{
-		//~ output = writeRun(start,cursor,output);
-		//~ output = LIST_START;
-		//~ output+=1;
 		cursor+=1;
 		parenCount+=1;
 	}

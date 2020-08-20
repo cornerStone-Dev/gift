@@ -272,13 +272,13 @@ skipCheck:
 		goto skipCheck;
 	}
 
-	"define" {
+	"def" {
 		*cursor = LIST_DEFINE;
 		cursor+=1;
 		goto loop;
 	}
 
-	"set!" {
+	"set" {
 		*cursor = LIST_SET;
 		cursor+=1;
 		goto loop;
@@ -290,7 +290,7 @@ skipCheck:
 		goto loop;
 	}
 	
-	"lambda" {
+	".\\" {
 		*cursor = LIST_LAMBDA;
 		cursor+=1;
 		goto loop;

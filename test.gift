@@ -5,14 +5,27 @@
 #t #f
 '(58 #t (1 "yes"))
 string-length
-(define #'b')
-(define happy 1)
+(def #'b')
+(def happy 1)
 happy
-(set! happy 25)
+(set happy 25)
 happy
 ;(+ 1 happy)
 (if 5 105 21)
 (/ (+ (+ happy 1) (* 5 5 happy 55.6)) 1000)
 (% 10.0 15.0)
-(lambda (x y) (+ x y))
-((lambda (x y) (+ x y)) 5 6)
+(.\ (x y) (+ x y))
+((.\ (x y) (+ x y)) 5 6)
+(def sum-of-squares (.\ (x y)
+	(+ (* x x) (* y y))))
+
+(sum-of-squares 4 5)
+
+(def dif-of-squares (.\ (x y)
+	(- (* x x) (* y y))))
+
+(sum-of-squares 7 5)
+(sum-of-squares 4 5)
+(dif-of-squares (sum-of-squares 7 5) (sum-of-squares 4 5))
+
+(dif-of-squares 10 5)

@@ -520,8 +520,14 @@ evalDefineExpr(S_Environment $e, u8 $cursor, u64 isSet)
 	// get size of value, cursor will point to the end
 	// TODO this is not efficent is this is a large item, make better
 	// make this a function call to getSize with special cases
-	cursor = skipItem(value);
-	valueLength = cursor - value;
+	if($value == LIST_PROCEDURE)
+	{
+		valueLength = ($((u16$)(value-2)))*4-2;
+		printf("procedure length %ld\n",valueLength);
+	} else {
+		cursor = skipItem(value);
+		valueLength = cursor - value;
+	}
 	
 	// insert value
 	// search for existing symbol
