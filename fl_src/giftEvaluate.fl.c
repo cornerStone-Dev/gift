@@ -108,7 +108,6 @@ evaluateDispatch:
 		}
 		procedure = e.sp;
 		arguments = e.sp+1;
-		e.arguments = arguments;
 		do{
 			// accumulate procedure and arguments
 			//printf("cursor = %d\n",$cursor);
@@ -133,6 +132,18 @@ evaluateDispatch:
 		//printf("cursor = %d\n",$cursor);
 		//printf("DISPATCH\n");
 		//exit(0);
+		//~ for(u32 i = 0; i < stackCount-1; i+=1){
+			//~ giftPrint(arguments[i]);
+			//~ u8 $transformedSource=arguments[i]-2;
+			//~ for(u32 x =0; x<12;x+=1)
+			//~ {
+				//~ printf("[%02X]",transformedSource[x]);
+			//~ }
+			//~ printf("\n");
+		//~ }
+		// pop the stack
+		e.sp-=stackCount;
+		e.arguments = arguments;
 		goto evaluateDispatch;
 		
 		
@@ -174,8 +185,8 @@ evaluateDispatch:
 		}
 		printf("\n");
 		printf("heapIndex=%ld\n",e.heapIndex);
-		printf("heapTop=%ld\n",e.heapTop);
-		printf("heapBottom=%ld\n",e.heapBottom);
+		//printf("heapTop=%ld\n",e.heapTop);
+		//printf("heapBottom=%ld\n",e.heapBottom);
 		return value;
 		
 		case LIST_LAMBDA:
@@ -218,8 +229,8 @@ evaluateDispatch:
 		}
 		printf("\n");
 		printf("heapIndex=%ld\n",e.heapIndex);
-		printf("heapTop=%ld\n",e.heapTop);
-		printf("heapBottom=%ld\n",e.heapBottom);
+		//printf("heapTop=%ld\n",e.heapTop);
+		//printf("heapBottom=%ld\n",e.heapBottom);
 		return value;
 		
 		//~ case LIST_SUBT:

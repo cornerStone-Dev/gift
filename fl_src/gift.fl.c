@@ -109,8 +109,8 @@ giftCommandLine(S_Environment $e, s32 argc, u8 $$argv)
 				}
 				printf("\n");
 				printf("heapIndex=%ld\n",e.heapIndex);
-				printf("heapTop=%ld\n",e.heapTop);
-				printf("heapBottom=%ld\n",e.heapBottom);
+				//printf("heapTop=%ld\n",e.heapTop);
+				//printf("heapBottom=%ld\n",e.heapBottom);
 				cursor = giftEvaluate(e, cursor);
 				giftPrint(cursor);
 				printf("\n");

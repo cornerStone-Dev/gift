@@ -26,6 +26,6 @@ happy
 
 (sum-of-squares 7 5)
 (sum-of-squares 4 5)
-(dif-of-squares (sum-of-squares 7 5) (sum-of-squares 4 5))
+(dif-of-squares (sum-of-squares 7 5) (sum-of-squares 5 4))
 
 (dif-of-squares 10 5)
