@@ -160,6 +160,7 @@ evaluateDispatch:
 		case LIST_DIVI:
 		case LIST_REMA:
 		cursor+=1;
+		// TODO Do I need to open a heap cursor?
 		// open a heap cursor
 		if(heapCursor == 0){
 			heapCursor = getHeapCursor(e);

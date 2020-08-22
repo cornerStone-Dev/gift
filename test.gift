@@ -11,6 +11,7 @@ happy
 (set happy 25)
 happy
 ;(+ 1 happy)
+
 (if 5 105 21)
 (/ (+ (+ happy 1) (* 5 5 happy 55.6)) 1000)
 (% 10.0 15.0)
@@ -44,7 +45,7 @@ happy
 (factorial 4)
 
 (def fact-iter (.\ (product n)
-	(if (< n 2)
-		(+ product 0)
+	(if (< n 3)
+		(* product n)
 		(fact-iter (* product n) (- n 1)))) )
-(fact-iter 1 4)
+(fact-iter 1 7)
