@@ -325,7 +325,37 @@ skipCheck:
 		cursor++;
 		goto loop;
 	}
-	
+
+	"=" {
+		*cursor = LIST_EQUALS;
+		cursor++;
+		goto loop;
+	}
+
+	">" {
+		*cursor = LIST_GREATER_THAN;
+		cursor++;
+		goto loop;
+	}
+
+	"<" {
+		*cursor = LIST_LESS_THAN;
+		cursor++;
+		goto loop;
+	}
+
+	"<=" {
+		*cursor = LIST_LESS_THAN_OR_EQUAL;
+		cursor++;
+		goto loop;
+	}
+
+	">=" {
+		*cursor = LIST_GREATER_THAN_OR_EQUAL;
+		cursor++;
+		goto loop;
+	}
+
 	"." {
 		*cursor = LIST_DOT;
 		cursor++;

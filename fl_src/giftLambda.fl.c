@@ -133,13 +133,6 @@ parseFormals(S_Environment $e, u8 $cursor)
 		c.cursor+=1;
 		
 	loop:
-		if ($c.cursor == LIST_END)
-		{
-			// we have completed the parsing of the arguments
-			// emit the arity requirements bytecode
-			c.cursor+=1;
-			goto done;
-		}
 		if ($c.cursor != LIST_SYMBOL)
 		{
 			goto error;
@@ -162,8 +155,18 @@ parseFormals(S_Environment $e, u8 $cursor)
 			}
 			goto done;
 		}
+		if ($c.cursor == LIST_END)
+		{
+			// we have completed the parsing of the arguments
+			// emit the arity requirements bytecode
+			c.cursor+=1;
+			goto done;
+		}
 		
 		goto loop;
+	} else if ($c.cursor == LIST_NULL) {
+		c.cursor+=1;
+		goto done;
 	} else {
 		goto error;
 	}

@@ -29,3 +29,22 @@ happy
 (dif-of-squares (sum-of-squares 7 5) (sum-of-squares 5 4))
 
 (dif-of-squares 10 5)
+(def hello (.\ () "Hello world"))
+"YOYO"
+(hello)
+
+(def factorial
+	(.\ (n)
+		(if (= n 1)
+			1
+			(* n (factorial (- n 1)))
+		)
+	)
+)
+(factorial 4)
+
+(def fact-iter (.\ (product n)
+	(if (< n 2)
+		(+ product 0)
+		(fact-iter (* product n) (- n 1)))) )
+(fact-iter 1 4)

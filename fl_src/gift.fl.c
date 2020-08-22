@@ -69,7 +69,7 @@ pub s32
 giftCommandLine(S_Environment $e, s32 argc, u8 $$argv)
 {
 	u8 buff[128];
-	u8 $sourceCode, $transformedSource;
+	u8 $sourceCode;
 	u8 $cursor;
 	u8 $readEnd;
 	if (argc <= 1)
@@ -100,15 +100,7 @@ giftCommandLine(S_Environment $e, s32 argc, u8 $$argv)
 					break;
 				}
 				$readEnd = 0xFF;
-				transformedSource = cursor;
 				finalizeHeapCursor(e, cursor, readEnd);
-				transformedSource-=2;
-				for(u32 x =0; x<20;x+=1)
-				{
-					printf("[%02X]",transformedSource[x]);
-				}
-				printf("\n");
-				printf("heapIndex=%ld\n",e.heapIndex);
 				//printf("heapTop=%ld\n",e.heapTop);
 				//printf("heapBottom=%ld\n",e.heapBottom);
 				cursor = giftEvaluate(e, cursor);

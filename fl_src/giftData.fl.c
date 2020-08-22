@@ -35,6 +35,14 @@ finalizeHeapCursor(S_Environment $e, u8 $start, u8 $end)
 	// Index should be 8 above the size and 4 above the start
 	e.heapIndex = (start+2)-e.heap;
 	e.heapIndex+=(amountWritten-1)*4; // open cursor adds 8
+	
+	u8 $transformedSource=start-2;
+	for(u32 x =0; x<20;x+=1)
+	{
+		printf("[%02X]",transformedSource[x]);
+	}
+	printf("\n");
+	printf("heapIndex=%ld\n",e.heapIndex);
 }
 
 //~ void $

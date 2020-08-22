@@ -164,7 +164,32 @@ skipCheck:
 		printf("%%");
 		value+=1;
 		goto loop;
-		
+
+		case LIST_EQUALS:
+		printf("=");
+		value+=1;
+		goto loop;
+
+		case LIST_GREATER_THAN:
+		printf(">");
+		value+=1;
+		goto loop;
+
+		case LIST_LESS_THAN:
+		printf("<");
+		value+=1;
+		goto loop;
+
+		case LIST_LESS_THAN_OR_EQUAL:
+		printf("<=");
+		value+=1;
+		goto loop;
+
+		case LIST_GREATER_THAN_OR_EQUAL:
+		printf("<=");
+		value+=1;
+		goto loop;
+
 		case LIST_LAMBDA:
 		printf("lambda");
 		value+=1;

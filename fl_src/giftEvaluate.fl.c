@@ -143,6 +143,8 @@ evaluateDispatch:
 		//~ }
 		// pop the stack
 		e.sp-=stackCount;
+		stackCount = 0;
+		// set arguments to what they were for evals
 		e.arguments = arguments;
 		goto evaluateDispatch;
 		
@@ -178,16 +180,19 @@ evaluateDispatch:
 		//~ value = giftAddProcedure(e, value, procedure, stackCount);
 		//~ // pop stack
 		//~ e.sp-=stackCount;
-		u8 $transformedSource=value-2;
-		for(u32 x =0; x<20;x+=1)
-		{
-			printf("[%02X]",transformedSource[x]);
-		}
-		printf("\n");
-		printf("heapIndex=%ld\n",e.heapIndex);
 		//printf("heapTop=%ld\n",e.heapTop);
 		//printf("heapBottom=%ld\n",e.heapBottom);
 		return value;
+
+		case LIST_EQUALS:
+		case LIST_GREATER_THAN:
+		case LIST_LESS_THAN:
+		case LIST_LESS_THAN_OR_EQUAL:
+		case LIST_GREATER_THAN_OR_EQUAL:
+		// these procedures always produce #t or #f
+		cursor+=1;
+		return evalCompareExpr(e, cursor, ($(cursor-1)-LIST_EQUALS));
+		
 		
 		case LIST_LAMBDA:
 		// the result of a lambda is a procedure
@@ -222,13 +227,6 @@ evaluateDispatch:
 		finalizeHeapCursor(e, value, cursor);
 		// pop stack
 		e.sp-=stackCount;
-		u8 $transformedSource=value-4;
-		for(u32 x =0; x<20;x+=1)
-		{
-			printf("[%02X]",transformedSource[x]);
-		}
-		printf("\n");
-		printf("heapIndex=%ld\n",e.heapIndex);
 		//printf("heapTop=%ld\n",e.heapTop);
 		//printf("heapBottom=%ld\n",e.heapBottom);
 		return value;
@@ -475,6 +473,90 @@ evalMathExpr(S_Environment $e, u8 $t, u8 $out, u8 op)
 		return out;
 	}
 	goto again;
+}
+
+u8$
+evalCompareExpr(S_Environment $e, u8 $cursor, u8 op)
+{
+	U_Data arg1, arg2;
+	u8  $next;
+	u8  $bools[] = {@e.listFalseValue,@e.listTrueValue};
+	u32 type1, type2;
+	u32 typeComp;
+	next = cursor;
+	cursor = giftEvaluate(e, cursor);
+	if($cursor <= LIST_INT8) // its an int
+	{
+		cursor+=1;
+		arg1.i = readListInt(cursor, ($(cursor-1)));
+		type1 = 1;
+	} else if ($cursor == LIST_FLOAT) // its a float
+	{
+		cursor+=1;
+		arg1.d = readListFloat(cursor);
+		type1 = 2;
+	} else {
+		printf("ERROR: Math comparision is for only floats and ints.\n");
+		return @e.undefinedValue;
+	}
+	next = skipItem(next);
+	cursor = next;
+	if ($cursor==LIST_END)
+	{
+		printf("ERROR: 2 parameters required for =,<,>,<=,>=.\n");
+		return @e.undefinedValue;
+	}
+	// second argument
+	cursor = giftEvaluate(e, cursor);
+	if($cursor <= LIST_INT8) // its an int
+	{
+		cursor+=1;
+		arg2.i = readListInt(cursor, ($(cursor-1)));
+		type2 = 1;
+	} else if ($cursor == LIST_FLOAT) // its a float
+	{
+		cursor+=1;
+		arg2.d = readListFloat(cursor);
+		type2 = 2;
+	} else {
+		printf("ERROR: Math comparision is for only floats and ints.\n");
+		return @e.undefinedValue;
+	}
+	// both arguments are read in time to process
+	typeComp = type1|type2;
+	if (typeComp == 1)
+	{
+		switch(op)
+		{
+			case 0:
+			return bools[arg1.i==arg2.i];
+			case 1:
+			return bools[arg1.i>arg2.i];
+			case 2:
+			return bools[arg1.i<arg2.i];
+			case 3:
+			return bools[arg1.i<=arg2.i];
+			case 4:
+			return bools[arg1.i>=arg2.i];
+		}
+	} else if (typeComp == 2)
+	{
+		switch(op)
+		{
+			case 0:
+			return bools[arg1.d==arg2.d];
+			case 1:
+			return bools[arg1.d>arg2.d];
+			case 2:
+			return bools[arg1.d<arg2.d];
+			case 3:
+			return bools[arg1.d<=arg2.d];
+			case 4:
+			return bools[arg1.d>=arg2.d];
+		}
+	}
+	printf("ERROR: Math comparision must compare the same type.\n");
+	return @e.undefinedValue;
 }
 
 u8$
