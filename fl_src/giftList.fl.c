@@ -171,6 +171,7 @@ skipCheck:
 		case LIST_LESS_THAN:
 		case LIST_LESS_THAN_OR_EQUAL:
 		case LIST_GREATER_THAN_OR_EQUAL:
+		case LIST_NOT:
 		case LIST_LAMBDA:
 		case LIST_DOT:
 		case LIST_REG0:

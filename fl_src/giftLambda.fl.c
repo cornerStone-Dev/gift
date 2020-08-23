@@ -207,9 +207,13 @@ parseBody(S_Environment $e, u8 $cursor, u8 $output)
 {
 	u8 $start;
 	u64 length;
-	u64 parenCount=0;
+	u32 $parenCountSp;
+	u32 parenCount=0;
 	u32 index=0;
 	s32 returnCode;
+	u32 parenCountArray[32];
+	
+	parenCountSp = parenCountArray;
 	
 	//$output = LIST_BEGIN;
 	//output+=1;
@@ -225,8 +229,9 @@ loop:
 		cursor+=1;
 		parenCount+=1;
 	}
-	if ($cursor == LIST_END)
+	switch($cursor)
 	{
+		case LIST_END:
 		cursor+=1;
 		if(parenCount)
 		{
@@ -235,9 +240,8 @@ loop:
 		} else {
 			goto exit;
 		}
-	}
-	if ($cursor == LIST_SYMBOL)
-	{
+		case LIST_SYMBOL:
+
 		// get length
 		length = $(cursor+1);
 
@@ -263,6 +267,9 @@ loop:
 		output+=1;
 		
 		goto again;
+		//case LIST_LET:
+		// let expression
+		// 
 	}
 	cursor = skipItem(cursor);
 	goto loop;

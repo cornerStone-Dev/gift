@@ -60,8 +60,8 @@ pub struct S_Environment{
 	u8            in_list;
 	u8            printed_error;
 	u8 listNullValue;
-	u8 listTrueValue;
 	u8 listFalseValue;
+	u8 listTrueValue;
 	u8 undefinedValue;
 };
 
@@ -198,8 +198,8 @@ giftInit(S_Environment $$e)
 
 	// constants
 	env.listNullValue = LIST_NULL;
-	env.listTrueValue = LIST_TRUE;
 	env.listFalseValue = LIST_FALSE;
+	env.listTrueValue = LIST_TRUE;
 	env.undefinedValue = LIST_UNDEFINED;
 	
 	env.arguments = 0;

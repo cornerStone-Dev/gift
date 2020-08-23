@@ -194,6 +194,9 @@ evaluateDispatch:
 		cursor+=1;
 		return evalCompareExpr(e, cursor, ($(cursor-1)-LIST_EQUALS));
 		
+		case LIST_NOT:
+		// produces #t if #f otherwise #f
+		return evalLogicalNotExpr(e, cursor);
 		
 		case LIST_LAMBDA:
 		// the result of a lambda is a procedure
@@ -481,7 +484,6 @@ evalCompareExpr(S_Environment $e, u8 $cursor, u8 op)
 {
 	U_Data arg1, arg2;
 	u8  $next;
-	u8  $bools[] = {@e.listFalseValue,@e.listTrueValue};
 	u32 type1, type2;
 	u32 typeComp;
 	next = cursor;
@@ -530,34 +532,47 @@ evalCompareExpr(S_Environment $e, u8 $cursor, u8 op)
 		switch(op)
 		{
 			case 0:
-			return bools[arg1.i==arg2.i];
+			return @e.listFalseValue+(arg1.i==arg2.i);
 			case 1:
-			return bools[arg1.i>arg2.i];
+			return @e.listFalseValue+(arg1.i>arg2.i);
 			case 2:
-			return bools[arg1.i<arg2.i];
+			return @e.listFalseValue+(arg1.i<arg2.i);
 			case 3:
-			return bools[arg1.i<=arg2.i];
+			return @e.listFalseValue+(arg1.i<=arg2.i);
 			case 4:
-			return bools[arg1.i>=arg2.i];
+			return @e.listFalseValue+(arg1.i>=arg2.i);
 		}
 	} else if (typeComp == 2)
 	{
 		switch(op)
 		{
 			case 0:
-			return bools[arg1.d==arg2.d];
+			return @e.listFalseValue+(arg1.d==arg2.d);
 			case 1:
-			return bools[arg1.d>arg2.d];
+			return @e.listFalseValue+(arg1.d>arg2.d);
 			case 2:
-			return bools[arg1.d<arg2.d];
+			return @e.listFalseValue+(arg1.d<arg2.d);
 			case 3:
-			return bools[arg1.d<=arg2.d];
+			return @e.listFalseValue+(arg1.d<=arg2.d);
 			case 4:
-			return bools[arg1.d>=arg2.d];
+			return @e.listFalseValue+(arg1.d>=arg2.d);
 		}
 	}
 	printf("ERROR: Math comparision must compare the same type.\n");
 	return @e.undefinedValue;
+}
+
+u8$
+evalLogicalNotExpr(S_Environment $e, u8 $cursor)
+{
+	cursor = giftEvaluate(e, cursor+1);
+	// TODO integrate check for more than argument error
+	if( $cursor == LIST_FALSE )
+	{
+		return @e.listTrueValue;
+	} else {
+		return @e.listFalseValue;
+	}
 }
 
 u8$

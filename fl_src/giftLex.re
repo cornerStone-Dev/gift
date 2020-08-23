@@ -356,6 +356,12 @@ skipCheck:
 		goto loop;
 	}
 
+	"not" {
+		*cursor = LIST_NOT;
+		cursor++;
+		goto loop;
+	}
+
 	"." {
 		*cursor = LIST_DOT;
 		cursor++;

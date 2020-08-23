@@ -35,14 +35,13 @@ happy
 (hello)
 
 (def factorial
-	(.\ (n)
-		(if (= n 1)
-			1
-			(* n (factorial (- n 1)))
-		)
+(.\ (n)
+	(if (= n 1)
+		1
+		(* n (factorial (- n 1)))
 	)
-)
-(factorial 4)
+))
+(factorial 7)
 
 (def fact-iter (.\ (product n)
 	(if (< n 3)
