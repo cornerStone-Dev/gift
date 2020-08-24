@@ -1,13 +1,14 @@
 // giftEvaluate.fl.c
 
 u8$
-giftEvaluate(S_Environment $e, u8 $cursor)
+giftEvaluate(S_Environment $e, u8 $cursor, u8 $$sp)
 {
 	T_hashTableNode $result;
 	u8              $value;
+	u8              $nextArgument;
 	u8              $heapCursor=0;
 	u8              $$procedure;
-	u8              $$arguments = e.arguments;
+	u8              $$arguments = 0;
 	u64 stackCount = 0;
 
 evaluateDispatch:
@@ -64,7 +65,7 @@ evaluateDispatch:
 		case LIST_REG5:
 		case LIST_REG6:
 		case LIST_REG7:
-		return $(arguments+($cursor-LIST_REG0));
+		return $(e.arguments+($cursor-LIST_REG0));
 		
 		default:
 		printf("Syntax error on ");
@@ -79,18 +80,18 @@ evaluateDispatch:
 		case LIST_DEFINE:
 		// define is a special form
 		// creates a binding the global environment
-		return evalDefineExpr(e, cursor, 0);
+		return evalDefineExpr(e, cursor, 0, sp);
 		
 		case LIST_SET:
 		// set! is a special form
 		// updates the closest binding in the environment
 		// this version updates the global environment
-		return evalDefineExpr(e, cursor, 1);
+		return evalDefineExpr(e, cursor, 1, sp);
 		
 		case LIST_IF:
 		// if special form
 		cursor+=1;
-		if( ($(giftEvaluate(e, cursor))) != LIST_FALSE )
+		if( ($(giftEvaluate(e, cursor, sp))) != LIST_FALSE )
 		{
 			cursor = skipItem(cursor);
 			goto evaluateDispatch;
@@ -103,21 +104,47 @@ evaluateDispatch:
 		// other procedure
 		case LIST_START:
 		case LIST_SYMBOL:
+		// for procedure open a heap cursor before evaluating arguments
 		if(heapCursor == 0){
 			heapCursor = getHeapCursor(e);
 		}
-		procedure = e.sp;
-		arguments = e.sp+1;
+		nextArgument = cursor;
+		procedure = sp;
+		// accumulate procedure and arguments by evaluating them
+		// this is done in the context of the previous arguments(if there)
 		do{
-			// accumulate procedure and arguments
-			//printf("cursor = %d\n",$cursor);
-			$e.sp = giftEvaluate(e, cursor);
-			e.sp+=1;
+			cursor = nextArgument;
+			// skip past item
+			nextArgument = skipItem(cursor);
+			// store item in stack
+			$sp = giftEvaluate(e, cursor, sp);
+			sp+=1;
+			// keep track of how many things we have added to the stack
 			stackCount+=1;
-			cursor = skipItem(cursor);
-		} while($cursor != LIST_END);
+		} while($nextArgument != LIST_END);
+		
+		// check if we are in a tailcall context
+		if (arguments != 0)
+		{
+			u64 x = 0;
+			// set arguments to previous procedure location
+			arguments = arguments-1;
+			// copy down new procedure and arguments so stack doesn't grow
+			for(; x < stackCount; x+=1)
+			{
+				arguments[x] = procedure[x];
+			}
+			// fix up stack
+			sp = @arguments[x];
+			// fix up procedure
+			procedure = arguments;
+		}
+		
+		// change context into new function
+		arguments = procedure+1;
+		
 		// sudo apply here
-		u8$ proc = $procedure;
+		u8 $proc = $procedure;
 		if($proc != LIST_PROCEDURE){
 			printf("Error: expected procedure\n");
 		}
@@ -129,29 +156,35 @@ evaluateDispatch:
 		// we are now looking at the body
 		// assume single body
 		cursor = proc;
-		//printf("cursor = %d\n",$cursor);
-		//printf("DISPATCH\n");
-		//exit(0);
-		//~ for(u32 i = 0; i < stackCount-1; i+=1){
-			//~ giftPrint(arguments[i]);
-			//~ u8 $transformedSource=arguments[i]-2;
-			//~ for(u32 x =0; x<12;x+=1)
-			//~ {
-				//~ printf("[%02X]",transformedSource[x]);
-			//~ }
-			//~ printf("\n");
-		//~ }
+
 		// pop the stack
-		e.sp-=stackCount;
+		//e.sp-=stackCount;
 		stackCount = 0;
 		// set arguments to what they were for evals
 		e.arguments = arguments;
 		goto evaluateDispatch;
 		
 		
+		case LIST_LET:
+		cursor+=1;
+		nextArgument = cursor;
+		// accumulate bindings
+		// this is done in the context of the previous arguments(if there)
+		do{
+			cursor = nextArgument;
+			// skip past item
+			nextArgument = skipItem(cursor);
+			// move into list
+			cursor+=1;
+			// store item in stack
+			$sp = giftEvaluate(e, cursor, sp);
+			sp+=1;
+		} while($nextArgument != LIST_END);
+		
+		cursor = nextArgument +1;
 		
 		
-		break;
+		goto evaluateDispatch;
 		
 		// primitive procedure
 		case LIST_PLUS:
@@ -165,24 +198,7 @@ evaluateDispatch:
 		if(heapCursor == 0){
 			heapCursor = getHeapCursor(e);
 		}
-		value = evalMathExpr(e, cursor, heapCursor, ($(cursor-1)-LIST_PLUS));
-		//~ // record start of args
-		//~ procedure = e.sp;
-		//~ while($cursor != LIST_END)
-		//~ {
-			//~ // accumulate arguments
-			//~ $e.sp = giftEvaluate(e, cursor);
-			//~ e.sp+=1;
-			//~ stackCount+=1;
-			//~ cursor = skipItem(cursor);
-		//~ }
-		//~ // e.sp-=stackCount;
-		//~ // return giftAddProcedure(e, value, procedure, stackCount);
-		//~ value = giftAddProcedure(e, value, procedure, stackCount);
-		//~ // pop stack
-		//~ e.sp-=stackCount;
-		//printf("heapTop=%ld\n",e.heapTop);
-		//printf("heapBottom=%ld\n",e.heapBottom);
+		value = evalMathExpr(e, cursor, heapCursor, ($(cursor-1)-LIST_PLUS),sp);
 		return value;
 
 		case LIST_EQUALS:
@@ -191,12 +207,11 @@ evaluateDispatch:
 		case LIST_LESS_THAN_OR_EQUAL:
 		case LIST_GREATER_THAN_OR_EQUAL:
 		// these procedures always produce #t or #f
-		cursor+=1;
-		return evalCompareExpr(e, cursor, ($(cursor-1)-LIST_EQUALS));
+		return evalCompareExpr(e, cursor+1, (($cursor)-LIST_EQUALS),sp);
 		
 		case LIST_NOT:
 		// produces #t if #f otherwise #f
-		return evalLogicalNotExpr(e, cursor);
+		return evalLogicalNotExpr(e, cursor,sp);
 		
 		case LIST_LAMBDA:
 		// the result of a lambda is a procedure
@@ -210,56 +225,8 @@ evaluateDispatch:
 		return @e.undefinedValue;
 	}
 	
-	// get bottom of stack
-	procedure = e.sp-stackCount;
-	// apply
-	switch($($procedure))
-	{
-		case LIST_PLUS:
-		// skip first procedure
-		procedure+=1;
-		s64 total = 0;
-		
-		for(u64 x=0; x < stackCount; x+=1)
-		{
-			total += readListInt(
-				(e.sp[x])+1,
-				$(e.sp[x]));
-		}
-		
-		cursor = listWriteInt(value, total);
-		finalizeHeapCursor(e, value, cursor);
-		// pop stack
-		e.sp-=stackCount;
-		//printf("heapTop=%ld\n",e.heapTop);
-		//printf("heapBottom=%ld\n",e.heapBottom);
-		return value;
-		
-		//~ case LIST_SUBT:
-		//~ printf("-");
-		//~ value+=1;
-		//~ goto loop;
-		
-		//~ case LIST_MULT:
-		//~ printf("*");
-		//~ value+=1;
-		//~ goto loop;
-		
-		//~ case LIST_DIVI:
-		//~ printf("/");
-		//~ value+=1;
-		//~ goto loop;
-		
-		//~ case LIST_REMA:
-		//~ printf("%%");
-		//~ value+=1;
-		//~ goto loop;
-		//~ default:
-		//~ printf("unknown value");
-		//~ value+=1;
-		//~ goto loop;
-		
-	}
+	printf("No mans land.\n");
+	return @e.undefinedValue;
 	
 	
 	return 0;
@@ -336,7 +303,7 @@ giftAddProcedure(S_Environment $e, u8 $cursor, u8 $$args, u64 numArgs)
 }
 
 u8$
-evalMathExpr(S_Environment $e, u8 $t, u8 $out, u8 op)
+evalMathExpr(S_Environment $e, u8 $t, u8 $out, u8 op, u8 $$sp)
 {
 	U_Data arg[2];
 	f64 arg3;
@@ -346,7 +313,7 @@ evalMathExpr(S_Environment $e, u8 $t, u8 $out, u8 op)
 	u8 typeIdx=0;
 	again:
 	next = t;
-	t = giftEvaluate(e, t);
+	t = giftEvaluate(e, t, sp);
 	if($t == LIST_FLOAT) // its a float
 	{
 		t+=1;
@@ -480,14 +447,14 @@ evalMathExpr(S_Environment $e, u8 $t, u8 $out, u8 op)
 }
 
 u8$
-evalCompareExpr(S_Environment $e, u8 $cursor, u8 op)
+evalCompareExpr(S_Environment $e, u8 $cursor, u8 op, u8 $$sp)
 {
 	U_Data arg1, arg2;
 	u8  $next;
 	u32 type1, type2;
 	u32 typeComp;
 	next = cursor;
-	cursor = giftEvaluate(e, cursor);
+	cursor = giftEvaluate(e, cursor, sp);
 	if($cursor <= LIST_INT8) // its an int
 	{
 		cursor+=1;
@@ -510,7 +477,7 @@ evalCompareExpr(S_Environment $e, u8 $cursor, u8 op)
 		return @e.undefinedValue;
 	}
 	// second argument
-	cursor = giftEvaluate(e, cursor);
+	cursor = giftEvaluate(e, cursor, sp);
 	if($cursor <= LIST_INT8) // its an int
 	{
 		cursor+=1;
@@ -563,9 +530,9 @@ evalCompareExpr(S_Environment $e, u8 $cursor, u8 op)
 }
 
 u8$
-evalLogicalNotExpr(S_Environment $e, u8 $cursor)
+evalLogicalNotExpr(S_Environment $e, u8 $cursor, u8 $$sp)
 {
-	cursor = giftEvaluate(e, cursor+1);
+	cursor = giftEvaluate(e, cursor+1, sp);
 	// TODO integrate check for more than argument error
 	if( $cursor == LIST_FALSE )
 	{
@@ -576,7 +543,7 @@ evalLogicalNotExpr(S_Environment $e, u8 $cursor)
 }
 
 u8$
-evalDefineExpr(S_Environment $e, u8 $cursor, u64 isSet)
+evalDefineExpr(S_Environment $e, u8 $cursor, u64 isSet, u8 $$sp)
 {
 	u8  $symbol;
 	u8  $value;
@@ -591,7 +558,7 @@ evalDefineExpr(S_Environment $e, u8 $cursor, u64 isSet)
 	// next expression must evalutate to a symbol
 	if($cursor != LIST_SYMBOL)
 	{
-		symbol = giftEvaluate(e, cursor);
+		symbol = giftEvaluate(e, cursor, sp);
 		if($symbol != LIST_SYMBOL)
 		{
 			printf("Error: attempt to define ");
@@ -603,7 +570,7 @@ evalDefineExpr(S_Environment $e, u8 $cursor, u64 isSet)
 	// skip over symbol or expression resulting in a symbol
 	cursor = skipItem(cursor);
 	// evaluate expression that will become bound to the symbol
-	value = giftEvaluate(e, cursor);
+	value = giftEvaluate(e, cursor, sp);
 	// deal with special cases
 	if($value == LIST_UNDEFINED){
 		printf("Error: attempt to define ");

@@ -195,6 +195,11 @@ skipCheck:
 		value+=1;
 		goto loop;
 
+		case LIST_LET:
+		printf("let");
+		value+=1;
+		goto loop;
+
 		case LIST_LAMBDA:
 		printf("lambda");
 		value+=1;

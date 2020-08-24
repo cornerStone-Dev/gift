@@ -101,9 +101,10 @@ giftCommandLine(S_Environment $e, s32 argc, u8 $$argv)
 				}
 				$readEnd = 0xFF;
 				finalizeHeapCursor(e, cursor, readEnd);
+				$e.sp = cursor;
 				//printf("heapTop=%ld\n",e.heapTop);
 				//printf("heapBottom=%ld\n",e.heapBottom);
-				cursor = giftEvaluate(e, cursor);
+				cursor = giftEvaluate(e, cursor, e.sp+1);
 				giftPrint(cursor);
 				printf("\n");
 				//giftEvaluate(e, cursor);

@@ -267,9 +267,97 @@ loop:
 		output+=1;
 		
 		goto again;
-		//case LIST_LET:
-		// let expression
-		// 
+		case LIST_LET:{
+		// let_expression ::= (let ( (x1 v1)...(x v) ) body)
+		printf("let expression\n");
+		// write out what has been read so far
+		output = writeRun(start,cursor,output);
+		// enter into scope
+		stringListStack_enterScope(e.sls);
+		// record each variable inside the binding
+		u8 $tmpCursor = cursor;
+		u8 $nextBinding;
+		u8 $startBinding;
+		tmpCursor+=1;
+		if($tmpCursor != LIST_START){
+			printf("Syntax Error:Need a list following a let.\n");
+			goto exit;
+		}
+		tmpCursor+=1;
+		startBinding = tmpCursor;
+		
+		// first add ALL symbols to symbol table
+		while(1){
+			if($tmpCursor != LIST_START){
+				printf("Syntax Error:Need a list for each binding .\n");
+				goto exit;
+			}
+			nextBinding = skipItem(tmpCursor);
+			tmpCursor+=1;
+			if($tmpCursor != LIST_SYMBOL){
+				printf("Syntax Error:Need to bind to symbol.\n");
+				goto exit;
+			}
+			parseSymbol(e, tmpCursor);
+			tmpCursor = nextBinding;
+			if($nextBinding == LIST_END)
+			{
+				break;
+			}
+		}
+		
+		// next write out expressions
+		$output = LIST_LET;
+		output+=1;
+		
+		tmpCursor = startBinding;
+		while(1){
+			// get next binding
+			nextBinding = skipItem(tmpCursor);
+			// move past list start
+			tmpCursor+=1;
+			// skip symbol
+			tmpCursor = skipItem(tmpCursor);
+			// output list start
+			$output = LIST_START;
+			output+=1;
+			// output expression
+			output = parseBody(e, tmpCursor, output);
+			tmpCursor = nextBinding;
+			// exit criteria
+			if($nextBinding == LIST_END)
+			{
+				break;
+			}
+			
+		}
+		$output = LIST_END;
+		output+=1;
+		
+		// move past list end
+		tmpCursor+=1;
+		
+		// parse the body of the let
+		output = parseBody(e, tmpCursor, output);
+		
+		// skip body
+		while(1){
+			tmpCursor = skipItem(tmpCursor);
+			if($tmpCursor == LIST_END)
+			{
+				break;
+			}
+		}
+		// move past list end
+		tmpCursor+=1;
+		// leave scope
+		stringListStack_leaveScope(e.sls);
+		
+		cursor = tmpCursor;
+		goto again;
+			
+		}
+		 
 	}
 	cursor = skipItem(cursor);
 	goto loop;

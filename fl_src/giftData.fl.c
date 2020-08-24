@@ -37,7 +37,7 @@ finalizeHeapCursor(S_Environment $e, u8 $start, u8 $end)
 	e.heapIndex+=(amountWritten-1)*4; // open cursor adds 8
 	
 	u8 $transformedSource=start-2;
-	for(u32 x =0; x<44;x+=1)
+	for(u32 x =0; x<24;x+=1)
 	{
 		printf("[%02X]",transformedSource[x]);
 	}

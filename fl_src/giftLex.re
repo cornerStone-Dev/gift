@@ -362,6 +362,12 @@ skipCheck:
 		goto loop;
 	}
 
+	"let" {
+		*cursor = LIST_LET;
+		cursor++;
+		goto loop;
+	}
+
 	"." {
 		*cursor = LIST_DOT;
 		cursor++;

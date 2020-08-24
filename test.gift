@@ -48,3 +48,25 @@ happy
 		(* product n)
 		(fact-iter (* product n) (- n 1)))) )
 (fact-iter 1 7)
+
+(def let-test
+(.\ (a b)
+	(let ((c 2)(d 7))
+		(+ a b c d)
+	)
+))
+
+(let-test 5 9)
+
+(def fake-add
+(.\ (a b)
+	(let ((a 2)(b 7))
+		(+ a b)
+	)
+))
+
+(fake-add 5 9)
+
+
+
+
